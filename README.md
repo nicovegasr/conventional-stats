@@ -1,5 +1,7 @@
 # conventional-stats
 
+![CI](https://github.com/nicovegasr/conventional-stats/actions/workflows/ci.yml/badge.svg)
+
 A lightweight shell toolkit for speed-focused developers — commit faster with shell shortcuts and visualize your [Conventional Commits](https://www.conventionalcommits.org/) history at a glance.
 
 ```
