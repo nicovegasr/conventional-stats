@@ -28,11 +28,17 @@ _execute_commit() {
 }
 
 _dispatch_commit() {
-  local commit_type="$1"
-  shift
-  local message_input="${*:-}"
-  if [[ "$message_input" == "--help" || -z "$message_input" ]]; then
+  local commit_type="$1" message_input="${2:-}"
+  if [[ -z "$message_input" || "$message_input" == "-h" || "$message_input" == "--help" ]]; then
     _print_commit_help; return 0
+  fi
+  if [[ "$message_input" == -* ]]; then
+    echo "Error: opción desconocida '$message_input' para $commit_type. Ejecuta '$commit_type -h' o '$commit_type' para ver la ayuda." >&2
+    return 1
+  fi
+  if [[ $# -gt 2 ]]; then
+    echo "Error: el mensaje debe ir entre comillas: $commit_type \"tu mensaje\"" >&2
+    return 1
   fi
   _execute_commit "$commit_type" "$message_input"
 }

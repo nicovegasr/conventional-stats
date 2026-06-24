@@ -30,12 +30,19 @@ function _execute_commit {
 }
 
 function _dispatch_commit {
-    param([string]$CommitType, [Parameter(ValueFromRemainingArguments=$true)][string[]]$MessageParts)
-    $message_input = $MessageParts -join ' '
-    if ($message_input -eq '--help' -or [string]::IsNullOrWhiteSpace($message_input)) {
+    param([string]$CommitType, [string]$CommitMessage)
+    if ([string]::IsNullOrWhiteSpace($CommitMessage) -or $CommitMessage -eq '-h' -or $CommitMessage -eq '--help') {
         _print_commit_help; return
     }
-    _execute_commit $CommitType $message_input
+    if ($CommitMessage.StartsWith('-')) {
+        Write-Error "Opción desconocida '$CommitMessage' para $CommitType. Ejecuta '$CommitType -h' o '$CommitType' para ver la ayuda."
+        return
+    }
+    if ($args.Count -gt 0) {
+        Write-Error "El mensaje debe ir entre comillas: $CommitType `"tu mensaje`""
+        return
+    }
+    _execute_commit $CommitType $CommitMessage
 }
 
 function red      { _dispatch_commit "red"      @args }
