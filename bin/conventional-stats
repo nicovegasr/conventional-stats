@@ -1,0 +1,84 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+REPO="${1:-.}"
+DAYS="${2:-}"
+
+if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+  echo "Uso: conventional-stats [ruta-repo] [días]"
+  echo ""
+  echo "  ruta-repo   Ruta al repositorio git (default: directorio actual)"
+  echo "  días        Limitar al historial de los últimos N días (default: todo)"
+  echo ""
+  echo "Ejemplos:"
+  echo "  conventional-stats"
+  echo "  conventional-stats ~/proyectos/mi-app"
+  echo "  conventional-stats ~/proyectos/mi-app 90"
+  exit 0
+fi
+
+if ! git -C "$REPO" rev-parse --git-dir &>/dev/null; then
+  echo "Error: '$REPO' no es un repositorio git." >&2
+  exit 1
+fi
+
+REPO_NAME=$(basename "$(git -C "$REPO" rev-parse --show-toplevel)")
+
+if [[ -n "$DAYS" ]]; then
+  SINCE="--since=${DAYS} days ago"
+  PERIOD="últimos ${DAYS} días"
+else
+  SINCE=""
+  PERIOD="todo el historial"
+fi
+
+TYPES=(feat fix hotfix refactor red green docs style test chore perf ci build revert)
+
+declare -A counts
+total=0
+
+for type in "${TYPES[@]}"; do
+  n=$(git -C "$REPO" log --oneline $SINCE --format="%s" 2>/dev/null \
+    | grep -ciE "^${type}(\(.+\))?!?:" || true)
+  counts[$type]=$n
+  total=$((total + n))
+done
+
+max=0
+for type in "${TYPES[@]}"; do
+  [[ ${counts[$type]} -gt $max ]] && max=${counts[$type]}
+done
+
+BAR_WIDTH=20
+
+bar() {
+  local n=$1
+  if [[ $max -eq 0 ]]; then
+    printf ""
+    return
+  fi
+  local filled=$(( n * BAR_WIDTH / max ))
+  printf '%0.s█' $(seq 1 $filled 2>/dev/null) 2>/dev/null || true
+}
+
+echo ""
+echo "📊 conventional-stats — ${REPO_NAME} (${PERIOD})"
+echo "────────────────────────────────────────────────"
+
+declare -A labels=(
+  [feat]="feat     " [fix]="fix      " [hotfix]="hotfix   "
+  [refactor]="refactor " [red]="red      " [green]="green    "
+  [docs]="docs     " [style]="style    " [test]="test     "
+  [chore]="chore    " [perf]="perf     " [ci]="ci       "
+  [build]="build    " [revert]="revert   "
+)
+
+for type in "${TYPES[@]}"; do
+  n=${counts[$type]}
+  [[ $n -eq 0 ]] && continue
+  printf "  %s %-${BAR_WIDTH}s  %s\n" "${labels[$type]}" "$(bar $n)" "$n"
+done
+
+echo "────────────────────────────────────────────────"
+echo "  Total    ${total} commits"
+echo ""
