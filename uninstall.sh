@@ -22,19 +22,19 @@ else
 fi
 
 # ── Eliminar CLI ──────────────────────────────────────────────────────────────
-BIN="$HOME/.local/bin/conventional-stats"
-if [[ -f "$BIN" ]]; then
-  rm "$BIN"
+CLI_BIN_PATH="$HOME/.local/bin/conventional-stats"
+if [[ -f "$CLI_BIN_PATH" ]]; then
+  rm "$CLI_BIN_PATH"
   ok "conventional-stats eliminado de $HOME/.local/bin"
 else
   warn "conventional-stats no encontrado en $HOME/.local/bin"
 fi
 
 # ── Eliminar config ───────────────────────────────────────────────────────────
-CONFIG_DIR="$HOME/.config/conventional-stats"
-if [[ -d "$CONFIG_DIR" ]]; then
-  rm -rf "$CONFIG_DIR"
-  ok "config eliminado de $CONFIG_DIR"
+USER_CONFIG_DIR="$HOME/.config/conventional-stats"
+if [[ -d "$USER_CONFIG_DIR" ]]; then
+  rm -rf "$USER_CONFIG_DIR"
+  ok "config eliminado de $USER_CONFIG_DIR"
 fi
 
 echo ""

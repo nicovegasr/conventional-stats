@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+INSTALLER_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ZSHRC="$HOME/.zshrc"
 MARKER_START="# >>> conventional-stats >>>"
 MARKER_END="# <<< conventional-stats <<<"
@@ -23,17 +23,18 @@ case "$OS" in
 esac
 
 # ── conventional-stats CLI ────────────────────────────────────────────────────
-BIN_DIR="$HOME/.local/bin"
-mkdir -p "$BIN_DIR"
-cp "$SCRIPT_DIR/bin/conventional-stats" "$BIN_DIR/conventional-stats"
-chmod +x "$BIN_DIR/conventional-stats"
-ok "conventional-stats → $BIN_DIR/conventional-stats"
+USER_BIN_DIR="$HOME/.local/bin"
+mkdir -p "$USER_BIN_DIR"
+cp "$INSTALLER_DIR/bin/conventional-stats" "$USER_BIN_DIR/conventional-stats"
+chmod +x "$USER_BIN_DIR/conventional-stats"
+ok "conventional-stats → $USER_BIN_DIR/conventional-stats"
 
 # ── Config files ──────────────────────────────────────────────────────────────
-CONFIG_DIR="$HOME/.config/conventional-stats"
-mkdir -p "$CONFIG_DIR"
-cp "$SCRIPT_DIR/config/git-commits.zsh" "$CONFIG_DIR/git-commits.zsh"
-ok "config → $CONFIG_DIR"
+# Copied to ~/.config so moving or deleting the cloned repo doesn't break the shell
+USER_CONFIG_DIR="$HOME/.config/conventional-stats"
+mkdir -p "$USER_CONFIG_DIR"
+cp "$INSTALLER_DIR/config/git-commits.zsh" "$USER_CONFIG_DIR/git-commits.zsh"
+ok "config → $USER_CONFIG_DIR"
 
 # ── .zshrc ────────────────────────────────────────────────────────────────────
 touch "$ZSHRC"

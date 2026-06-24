@@ -1,5 +1,5 @@
 # shellcheck shell=bash
-_commit_help() {
+_print_commit_help() {
   echo "Uso: <tipo> \"mensaje\"  →  git add . && git commit -m \"<tipo>: mensaje.\""
   echo "El punto final se añade automáticamente si falta."
   echo ""
@@ -19,36 +19,34 @@ _commit_help() {
   echo "  perf     \"msg\"   Mejora de rendimiento"
   echo "  ci       \"msg\"   Configuración de CI/CD"
   echo "  build    \"msg\"   Sistema de build"
-  echo "  revert   \"msg\"   Revertir un commit anterior"
 }
 
-_do_commit() {
-  local type="$1" msg="$2"
-  [[ "$msg" != *. ]] && msg="${msg}."
-  git add . && git commit -m "${type}: ${msg}"
+_execute_commit() {
+  local commit_type="$1" commit_message="$2"
+  [[ "$commit_message" != *. ]] && commit_message="${commit_message}."
+  git add . && git commit -m "${commit_type}: ${commit_message}"
 }
 
-_commit_fn() {
-  local type="$1"
+_dispatch_commit() {
+  local commit_type="$1"
   shift
-  local arg="${*:-}"
-  if [[ "$arg" == "--help" || -z "$arg" ]]; then
-    _commit_help; return 0
+  local message_input="${*:-}"
+  if [[ "$message_input" == "--help" || -z "$message_input" ]]; then
+    _print_commit_help; return 0
   fi
-  _do_commit "$type" "$arg"
+  _execute_commit "$commit_type" "$message_input"
 }
 
-red()      { _commit_fn "red"      "$@"; }
-green()    { _commit_fn "green"    "$@"; }
-refactor() { _commit_fn "refactor" "$@"; }
-feat()     { _commit_fn "feat"     "$@"; }
-fix()      { _commit_fn "fix"      "$@"; }
-hotfix()   { _commit_fn "hotfix"   "$@"; }
-docs()     { _commit_fn "docs"     "$@"; }
-style()    { _commit_fn "style"    "$@"; }
-tests()    { _commit_fn "test"     "$@"; }
-chore()    { _commit_fn "chore"    "$@"; }
-perf()     { _commit_fn "perf"     "$@"; }
-ci()       { _commit_fn "ci"       "$@"; }
-build()    { _commit_fn "build"    "$@"; }
-revert()   { _commit_fn "revert"   "$@"; }
+red()      { _dispatch_commit "red"      "$@"; }
+green()    { _dispatch_commit "green"    "$@"; }
+refactor() { _dispatch_commit "refactor" "$@"; }
+feat()     { _dispatch_commit "feat"     "$@"; }
+fix()      { _dispatch_commit "fix"      "$@"; }
+hotfix()   { _dispatch_commit "hotfix"   "$@"; }
+docs()     { _dispatch_commit "docs"     "$@"; }
+style()    { _dispatch_commit "style"    "$@"; }
+tests()    { _dispatch_commit "test"     "$@"; }  # 'tests' not 'test' to avoid shadowing zsh builtin
+chore()    { _dispatch_commit "chore"    "$@"; }
+perf()     { _dispatch_commit "perf"     "$@"; }
+ci()       { _dispatch_commit "ci"       "$@"; }
+build()    { _dispatch_commit "build"    "$@"; }

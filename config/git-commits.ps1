@@ -1,6 +1,6 @@
 # conventional-stats — commit shortcuts (PowerShell)
 
-function _commit_help {
+function _print_commit_help {
     Write-Host "Usage: <type> `"message`"  ->  git add . && git commit -m `"<type>: message.`""
     Write-Host "Trailing period is added automatically if missing."
     Write-Host ""
@@ -20,36 +20,34 @@ function _commit_help {
     Write-Host "  perf     `"msg`"   Performance improvement"
     Write-Host "  ci       `"msg`"   CI/CD configuration"
     Write-Host "  build    `"msg`"   Build system"
-    Write-Host "  revert   `"msg`"   Revert a previous commit"
 }
 
-function _do_commit {
-    param([string]$Type, [string]$Msg)
-    if (-not $Msg.EndsWith('.')) { $Msg = "$Msg." }
+function _execute_commit {
+    param([string]$CommitType, [string]$CommitMessage)
+    if (-not $CommitMessage.EndsWith('.')) { $CommitMessage = "$CommitMessage." }
     git add .
-    git commit -m "${Type}: ${Msg}"
+    git commit -m "${CommitType}: ${CommitMessage}"
 }
 
-function _commit_fn {
-    param([string]$Type, [Parameter(ValueFromRemainingArguments=$true)][string[]]$Args)
-    $msg = $Args -join ' '
-    if ($msg -eq '--help' -or [string]::IsNullOrWhiteSpace($msg)) {
-        _commit_help; return
+function _dispatch_commit {
+    param([string]$CommitType, [Parameter(ValueFromRemainingArguments=$true)][string[]]$MessageParts)
+    $message_input = $MessageParts -join ' '
+    if ($message_input -eq '--help' -or [string]::IsNullOrWhiteSpace($message_input)) {
+        _print_commit_help; return
     }
-    _do_commit $Type $msg
+    _execute_commit $CommitType $message_input
 }
 
-function red      { _commit_fn "red"      @args }
-function green    { _commit_fn "green"    @args }
-function refactor { _commit_fn "refactor" @args }
-function feat     { _commit_fn "feat"     @args }
-function fix      { _commit_fn "fix"      @args }
-function hotfix   { _commit_fn "hotfix"   @args }
-function docs     { _commit_fn "docs"     @args }
-function style    { _commit_fn "style"    @args }
-function tests    { _commit_fn "test"     @args }
-function chore    { _commit_fn "chore"    @args }
-function perf     { _commit_fn "perf"     @args }
-function ci       { _commit_fn "ci"       @args }
-function build    { _commit_fn "build"    @args }
-function revert   { _commit_fn "revert"   @args }
+function red      { _dispatch_commit "red"      @args }
+function green    { _dispatch_commit "green"    @args }
+function refactor { _dispatch_commit "refactor" @args }
+function feat     { _dispatch_commit "feat"     @args }
+function fix      { _dispatch_commit "fix"      @args }
+function hotfix   { _dispatch_commit "hotfix"   @args }
+function docs     { _dispatch_commit "docs"     @args }
+function style    { _dispatch_commit "style"    @args }
+function tests    { _dispatch_commit "test"     @args }  # 'tests' not 'test': avoids conflict with Test-* cmdlets
+function chore    { _dispatch_commit "chore"    @args }
+function perf     { _dispatch_commit "perf"     @args }
+function ci       { _dispatch_commit "ci"       @args }
+function build    { _dispatch_commit "build"    @args }
