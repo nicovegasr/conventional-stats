@@ -22,25 +22,6 @@ case "$OS" in
   *) fail "Sistema no soportado: $OS. Usa windows/install.ps1 en Windows." ;;
 esac
 
-# ── Brew ──────────────────────────────────────────────────────────────────────
-if ! command -v brew &>/dev/null; then
-  warn "Homebrew no encontrado. Instalando..."
-  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-fi
-ok "Homebrew"
-
-# ── Dependencias ──────────────────────────────────────────────────────────────
-PACKAGES=(tree bat zsh-autosuggestions zsh-syntax-highlighting)
-for pkg in "${PACKAGES[@]}"; do
-  if brew list "$pkg" &>/dev/null; then
-    ok "$pkg (ya instalado)"
-  else
-    echo "  Instalando $pkg..."
-    brew install "$pkg"
-    ok "$pkg"
-  fi
-done
-
 # ── conventional-stats CLI ────────────────────────────────────────────────────
 BIN_DIR="$HOME/.local/bin"
 mkdir -p "$BIN_DIR"
@@ -51,7 +32,6 @@ ok "conventional-stats → $BIN_DIR/conventional-stats"
 # ── Config files ──────────────────────────────────────────────────────────────
 CONFIG_DIR="$HOME/.config/conventional-stats"
 mkdir -p "$CONFIG_DIR"
-cp "$SCRIPT_DIR/config/aliases.zsh" "$CONFIG_DIR/aliases.zsh"
 cp "$SCRIPT_DIR/config/git-commits.zsh" "$CONFIG_DIR/git-commits.zsh"
 ok "config → $CONFIG_DIR"
 
@@ -64,7 +44,6 @@ else
   cat >> "$ZSHRC" <<EOF
 
 ${MARKER_START}
-source "\$HOME/.config/conventional-stats/aliases.zsh"
 source "\$HOME/.config/conventional-stats/git-commits.zsh"
 export PATH="\$HOME/.local/bin:\$PATH"
 ${MARKER_END}

@@ -15,27 +15,7 @@ Write-Host ""
 Write-Host "🚀 conventional-stats — instalación (Windows)" -ForegroundColor Cyan
 Write-Host "───────────────────────────────────────────────"
 
-# ── Scoop (gestor de paquetes) ────────────────────────────────────────────────
-if (-not (Get-Command scoop -ErrorAction SilentlyContinue)) {
-  warn "Scoop no encontrado. Instalando..."
-  Set-ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
-  Invoke-RestMethod get.scoop.sh | Invoke-Expression
-}
-ok "Scoop"
-
-# ── Dependencias ──────────────────────────────────────────────────────────────
-$packages = @("bat", "tree")
-foreach ($pkg in $packages) {
-  $installed = scoop list 2>$null | Select-String $pkg
-  if ($installed) {
-    ok "$pkg (ya instalado)"
-  } else {
-    scoop install $pkg
-    ok $pkg
-  }
-}
-
-# ── Aliases en perfil de PowerShell ──────────────────────────────────────────
+# ── Funciones de commit en perfil de PowerShell ───────────────────────────────
 if (-not (Test-Path $ProfilePath)) { New-Item -Path $ProfilePath -Force | Out-Null }
 $content = Get-Content $ProfilePath -Raw -ErrorAction SilentlyContinue
 
@@ -45,7 +25,6 @@ if ($content -match [regex]::Escape($MarkerStart)) {
   $block = @"
 
 $MarkerStart
-. "$Root\config\aliases.ps1"
 . "$Root\config\git-commits.ps1"
 $MarkerEnd
 "@

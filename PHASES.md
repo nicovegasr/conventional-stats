@@ -60,14 +60,12 @@ Mejoras de mantenibilidad y rendimiento que no bloquean la publicación pero sí
 
 ## Phase 5 — Naming, testing & CI/CD `[ ]`
 
-Fase de madurez post-publicación. Se planificará en detalle al llegar.
-
-Áreas candidatas:
-- **Naming review**: revisar nombres de funciones, variables y archivos con consistencia cross-platform
-- **Test suite**: BATS (Bash Automated Testing System) para `bin/conventional-stats` e `install.sh`
-- **CI/CD**: GitHub Actions — lint (shellcheck), tests en ubuntu + macos, badge en README
-- **Version pinning**: gestión de versiones de dependencias Homebrew/Scoop
-- **README**: reemplazar URL placeholder `your-username`, añadir badge de CI
+| Sub-tarea | Descripción | Estado |
+|-----------|-------------|--------|
+| **5a** | ShellCheck: lint y fixes en todos los scripts | `[x]` commit `9c6d89f` |
+| **5b** | BATS test suite para `bin/conventional-stats` (15 tests) | `[x]` commit `4bc79bc` |
+| **5c** | GitHub Actions CI (shellcheck + bats en ubuntu + macos) | `[ ]` |
+| **5d** | README: reemplazar `your-username`, corregir descripción de bat, badge de CI | `[x]` (junto a 5c) |
 
 ---
 
@@ -79,4 +77,4 @@ Fase de madurez post-publicación. Se planificará en detalle al llegar.
 | 2 | `[x]` completa | fix: pass full message and clarify tests/test: naming |
 | 3 | `[x]` completa | feat: add PowerShell config files and fix Windows installer |
 | 4 | `[x]` completa | refactor: single git log pass, stable config path, drop LABELS array |
-| 5 | `[ ]` pendiente | — |
+| 5 | `[ ]` en curso (5a✓ 5b✓ 5c pendiente) | — |
