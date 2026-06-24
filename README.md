@@ -44,7 +44,7 @@ cd conventional-stats
 .\windows\install.ps1
 ```
 
-The installer handles dependencies automatically (Homebrew, tree, bat, zsh-autosuggestions, zsh-syntax-highlighting).
+> **Note:** The CLI (`conventional-stats`) is a zsh script and does not run natively on Windows. Use WSL2 with zsh to access it. The shell commit shortcuts work in PowerShell without WSL2.
 
 ---
 
@@ -56,7 +56,7 @@ Every function follows the same pattern:
 <type> "message"  →  git add . && git commit -m "<type>: message."
 ```
 
-The trailing period is added automatically if missing.
+The trailing period is added automatically if missing. Multi-word messages work without quotes: `feat add login flow`.
 
 #### TDD workflow
 
@@ -80,9 +80,10 @@ The trailing period is added automatically if missing.
 | `perf "cache DB queries"` | `perf` | Performance improvement |
 | `ci "add lint step"` | `ci` | CI/CD configuration |
 | `build "switch to esbuild"` | `build` | Build system |
-| `revert "feat: add OAuth login"` | `revert` | Revert a previous commit |
 
 Run `feat --help` (or any type + `--help`) to see the full list in your terminal.
+
+> **Reverting commits:** use `git revert <hash>` directly — git generates the correct conventional message automatically (`Revert "feat: ..."`), and `conventional-stats` will count it in the `revert` category.
 
 ---
 
@@ -99,9 +100,82 @@ conventional-stats ~/projects/my-app
 
 # Filter by date range
 conventional-stats ~/projects/my-app 90
+
+# JSON output (pipeable to jq, scripts, etc.)
+conventional-stats --json ~/projects/my-app
+conventional-stats --json ~/projects/my-app 90
+```
+
+JSON output format:
+
+```json
+{
+  "repo": "my-app",
+  "period": "últimos 90 días",
+  "commits": [
+    { "type": "feat", "count": 12 },
+    { "type": "fix", "count": 8 }
+  ],
+  "total": 20
+}
 ```
 
 Works with any repo that uses Conventional Commits — yours, a colleague's, or an open source project.
+
+---
+
+## How it works
+
+### Shell shortcut call flow
+
+```
+feat "add login"
+  └─ _dispatch_commit "feat" "add login"
+       └─ _execute_commit "feat" "add login."
+            └─ git add . && git commit -m "feat: add login."
+```
+
+Three layers: public commands fix the commit type and delegate to `_dispatch_commit`, which handles `--help` and empty-input cases, then calls `_execute_commit` for the actual git operation.
+
+### CLI data pipeline
+
+```
+conventional-stats ~/my-app 90
+  └─ git log --format="%s" --since="90 days ago"   (single subprocess)
+       └─ regex match per commit subject             (in-memory, no extra forks)
+            └─ proportional bar chart → stdout
+```
+
+A single `git log` reads all subjects; the per-type counts are built in an associative array. Bar width scales so the type with the most commits always fills the full 24-character column.
+
+### Key design decisions
+
+| Decision | Reason |
+|----------|--------|
+| Single `git log` for all types | Avoids one subprocess per type (14 forks vs. 1) |
+| `--since` stored as an array | Prevents word-splitting on `"30 days ago"` during expansion |
+| Config copied to `~/.config/conventional-stats/` | Moving or deleting the cloned repo doesn't break the shell |
+| Marker blocks in `.zshrc` | `uninstall.sh` can locate and remove exactly the injected block |
+| CLI uses `#!/usr/bin/env zsh` | macOS ships bash 3.2 (no associative arrays); zsh is built-in on Apple Silicon |
+| Shell command `tests` → commit prefix `test:` | Avoids shadowing the `test` builtin in zsh |
+
+---
+
+## Project structure
+
+```
+conventional-stats/
+├── bin/conventional-stats      # CLI: reads git history, renders bar chart
+├── config/
+│   ├── git-commits.zsh         # Commit shortcuts sourced into .zshrc (Unix/macOS)
+│   └── git-commits.ps1         # Commit shortcuts dot-sourced into PS profile (Windows)
+├── tests/
+│   └── conventional-stats.bats # BATS test suite for the CLI
+├── install.sh                  # Copies CLI to ~/.local/bin, injects .zshrc block
+├── uninstall.sh                # Removes CLI, config dir, and .zshrc block
+└── windows/
+    └── install.ps1             # Injects git-commits.ps1 into PowerShell profile
+```
 
 ---
 
@@ -112,7 +186,7 @@ Works with any repo that uses Conventional Commits — yours, a colleague's, or 
 source ~/.zshrc
 ```
 
-This removes the block added to your `.zshrc` and the `conventional-stats` binary. A `.zshrc.bak` backup is created automatically.
+This removes the block added to your `.zshrc`, the `conventional-stats` binary, and the config directory. A `.zshrc.bak` backup is created automatically.
 
 ---
 

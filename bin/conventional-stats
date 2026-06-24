@@ -1,12 +1,10 @@
 #!/usr/bin/env zsh
 set -euo pipefail
 
-REPO="${1:-.}"
-DAYS="${2:-}"
-
 if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
-  echo "Uso: conventional-stats [ruta-repo] [días]"
+  echo "Uso: conventional-stats [--json] [ruta-repo] [días]"
   echo ""
+  echo "  --json      Salida en formato JSON"
   echo "  ruta-repo   Ruta al repositorio git (default: directorio actual)"
   echo "  días        Limitar al historial de los últimos N días (default: todo)"
   echo ""
@@ -14,70 +12,118 @@ if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
   echo "  conventional-stats"
   echo "  conventional-stats ~/proyectos/mi-app"
   echo "  conventional-stats ~/proyectos/mi-app 90"
+  echo "  conventional-stats --json ~/proyectos/mi-app"
+  echo "  conventional-stats --json ~/proyectos/mi-app 90"
   exit 0
 fi
 
-if ! git -C "$REPO" rev-parse --git-dir &>/dev/null; then
-  echo "Error: '$REPO' no es un repositorio git." >&2
+# Separate --json flag from positional args so it can appear anywhere
+OUTPUT_FORMAT="text"
+POSITIONAL_ARGS=()
+for arg in "$@"; do
+  if [[ "$arg" == "--json" ]]; then
+    OUTPUT_FORMAT="json"
+  else
+    POSITIONAL_ARGS+=("$arg")
+  fi
+done
+
+REPO_PATH="${POSITIONAL_ARGS[1]:-.}"
+FILTER_DAYS="${POSITIONAL_ARGS[2]:-}"
+
+if ! git -C "$REPO_PATH" rev-parse --git-dir &>/dev/null; then
+  echo "Error: '$REPO_PATH' no es un repositorio git." >&2
   exit 1
 fi
 
-REPO_NAME=$(basename "$(git -C "$REPO" rev-parse --show-toplevel)")
+REPO_NAME=$(basename "$(git -C "$REPO_PATH" rev-parse --show-toplevel)")
 
-SINCE=()
-PERIOD="todo el historial"
-if [[ -n "$DAYS" ]]; then
-  SINCE=(--since="${DAYS} days ago")
-  PERIOD="últimos ${DAYS} días"
+# Array so "30 days ago" expands as one git argument, not three tokens
+GIT_SINCE_FLAGS=()
+PERIOD_LABEL="todo el historial"
+if [[ -n "$FILTER_DAYS" ]]; then
+  GIT_SINCE_FLAGS=(--since="${FILTER_DAYS} days ago")
+  PERIOD_LABEL="últimos ${FILTER_DAYS} días"
 fi
 
-TYPES=(feat fix hotfix refactor red green docs style test chore perf ci build revert)
+COMMIT_TYPES=(feat fix hotfix refactor red green docs style test chore perf ci build revert)
 
-typeset -A counts
-total=0
-max=0
+typeset -A type_counts
+total_commits=0
+max_type_count=0
 
-while IFS= read -r subject; do
-  for type in "${TYPES[@]}"; do
-    if [[ "$subject" =~ ^${type}(\(.+\))?!?: ]]; then
-      counts[$type]=$(( ${counts[$type]:-0} + 1 ))
+while IFS= read -r commit_subject; do
+  for commit_type in "${COMMIT_TYPES[@]}"; do
+    if [[ "$commit_subject" =~ ^${commit_type}(\(.+\))?!?: ]]; then
+      type_counts[$commit_type]=$(( ${type_counts[$commit_type]:-0} + 1 ))
       break
     fi
   done
-done < <(git -C "$REPO" log --oneline "${SINCE[@]}" --format="%s" 2>/dev/null)
+done < <(git -C "$REPO_PATH" log --oneline "${GIT_SINCE_FLAGS[@]}" --format="%s" 2>/dev/null)
 
-for type in "${TYPES[@]}"; do
-  n=${counts[$type]:-0}
-  counts[$type]=$n
-  total=$((total + n))
-  [[ $n -gt $max ]] && max=$n
+for commit_type in "${COMMIT_TYPES[@]}"; do
+  count=${type_counts[$commit_type]:-0}
+  type_counts[$commit_type]=$count
+  total_commits=$((total_commits + count))
+  [[ $count -gt $max_type_count ]] && max_type_count=$count
 done
 
-BAR_WIDTH=24
+# ── JSON output ───────────────────────────────────────────────────────────────
 
-bar() {
-  local n=$1
-  [[ $max -eq 0 ]] && return
-  local filled=$(( n * BAR_WIDTH / max ))
-  (( filled > 0 )) && repeat $filled { printf '█' }
+if [[ "$OUTPUT_FORMAT" == "json" ]]; then
+  typeset -a json_commit_entries=()
+  for commit_type in "${COMMIT_TYPES[@]}"; do
+    count=${type_counts[$commit_type]:-0}
+    [[ $count -eq 0 ]] && continue
+    json_commit_entries+=("    { \"type\": \"${commit_type}\", \"count\": ${count} }")
+  done
+
+  printf '{\n'
+  printf '  "repo": "%s",\n' "$REPO_NAME"
+  printf '  "period": "%s",\n' "$PERIOD_LABEL"
+  printf '  "commits": [\n'
+  local i=1
+  for entry in "${json_commit_entries[@]}"; do
+    if [[ $i -lt ${#json_commit_entries[@]} ]]; then
+      printf '%s,\n' "$entry"
+    else
+      printf '%s\n' "$entry"
+    fi
+    i=$((i + 1))
+  done
+  printf '  ],\n'
+  printf '  "total": %d\n' "$total_commits"
+  printf '}\n'
+  exit 0
+fi
+
+# ── Text output ───────────────────────────────────────────────────────────────
+
+BAR_MAX_WIDTH=24
+
+draw_bar() {
+  local count=$1
+  [[ $max_type_count -eq 0 ]] && return
+  local bar_filled_cols=$(( count * BAR_MAX_WIDTH / max_type_count ))
+  (( bar_filled_cols > 0 )) && repeat $bar_filled_cols { printf '█' }
 }
 
 echo ""
-echo "📊 conventional-stats — ${REPO_NAME} (${PERIOD})"
+echo "📊 conventional-stats — ${REPO_NAME} (${PERIOD_LABEL})"
 echo "──────────────────────────────────────────────────"
 
-printed=0
-for type in "${TYPES[@]}"; do
-  n=${counts[$type]:-0}
-  [[ $n -eq 0 ]] && continue
-  printf "  %-8s  %-${BAR_WIDTH}s  %s\n" "$type" "$(bar $n)" "$n"
-  printed=$((printed + 1))
+rows_printed=0
+for commit_type in "${COMMIT_TYPES[@]}"; do
+  count=${type_counts[$commit_type]:-0}
+  [[ $count -eq 0 ]] && continue
+  printf "  %-8s  %-${BAR_MAX_WIDTH}s  %s\n" "$commit_type" "$(draw_bar $count)" "$count"
+  rows_printed=$((rows_printed + 1))
 done
 
-if [[ $printed -eq 0 ]]; then
+if [[ $rows_printed -eq 0 ]]; then
   echo "  Sin commits conventional en este rango."
 fi
 
 echo "──────────────────────────────────────────────────"
-echo "  Total    ${total} commits"
+echo "  Total    ${total_commits} commits"
 echo ""

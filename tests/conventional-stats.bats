@@ -86,6 +86,13 @@ teardown() {
   [[ "$output" == *"feat"* ]]
 }
 
+@test "supports scoped breaking change commits (feat(scope)!: msg)" {
+  git -C "$TMPDIR" commit --allow-empty -m "feat(auth)!: drop v1 API" -q
+  run zsh "$BIN" "$TMPDIR"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"feat"* ]]
+}
+
 @test "ignores non-conventional commits" {
   git -C "$TMPDIR" commit --allow-empty -m "feat: real one" -q
   git -C "$TMPDIR" commit --allow-empty -m "WIP messy commit" -q
@@ -94,6 +101,43 @@ teardown() {
   [ "$status" -eq 0 ]
   # Total must be 1 (only the feat commit)
   [[ "$output" == *"Total    1"* ]]
+}
+
+@test "recognizes all 14 commit types" {
+  git -C "$TMPDIR" commit --allow-empty -m "feat: a" -q
+  git -C "$TMPDIR" commit --allow-empty -m "fix: b" -q
+  git -C "$TMPDIR" commit --allow-empty -m "hotfix: c" -q
+  git -C "$TMPDIR" commit --allow-empty -m "refactor: d" -q
+  git -C "$TMPDIR" commit --allow-empty -m "red: e" -q
+  git -C "$TMPDIR" commit --allow-empty -m "green: f" -q
+  git -C "$TMPDIR" commit --allow-empty -m "docs: g" -q
+  git -C "$TMPDIR" commit --allow-empty -m "style: h" -q
+  git -C "$TMPDIR" commit --allow-empty -m "test: i" -q
+  git -C "$TMPDIR" commit --allow-empty -m "chore: j" -q
+  git -C "$TMPDIR" commit --allow-empty -m "perf: k" -q
+  git -C "$TMPDIR" commit --allow-empty -m "ci: l" -q
+  git -C "$TMPDIR" commit --allow-empty -m "build: m" -q
+  git -C "$TMPDIR" commit --allow-empty -m "revert: n" -q
+  run zsh "$BIN" "$TMPDIR"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Total    14"* ]]
+}
+
+@test "test: prefix is counted (shell command is 'tests', commit prefix is 'test:')" {
+  git -C "$TMPDIR" commit --allow-empty -m "test: add unit tests" -q
+  run zsh "$BIN" "$TMPDIR"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"test"* ]]
+  [[ "$output" == *"Total    1"* ]]
+}
+
+@test "types with 0 commits are not printed" {
+  git -C "$TMPDIR" commit --allow-empty -m "feat: add login" -q
+  run zsh "$BIN" "$TMPDIR"
+  [ "$status" -eq 0 ]
+  # fix and chore have 0 commits — their row must not appear
+  [[ "$output" != *"  fix "* ]]
+  [[ "$output" != *"  chore "* ]]
 }
 
 # ── --since filter ────────────────────────────────────────────────────────────
@@ -112,12 +156,53 @@ teardown() {
   [[ "$output" == *"feat"* ]]
 }
 
+@test "output shows period label when DAYS arg is given" {
+  git -C "$TMPDIR" commit --allow-empty -m "feat: add login" -q
+  run zsh "$BIN" "$TMPDIR" 30
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"últimos 30 días"* ]]
+}
+
 # ── Default to current dir ────────────────────────────────────────────────────
 
 @test "defaults to current directory when no args" {
   git -C "$TMPDIR" commit --allow-empty -m "feat: add login" -q
   cd "$TMPDIR" && run zsh "$BIN"
   [ "$status" -eq 0 ]
+}
+
+# ── JSON output ───────────────────────────────────────────────────────────────
+
+@test "--json outputs repo name, period and total" {
+  git -C "$TMPDIR" commit --allow-empty -m "feat: add login" -q
+  git -C "$TMPDIR" commit --allow-empty -m "fix: crash" -q
+  run zsh "$BIN" --json "$TMPDIR"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *'"total": 2'* ]]
+  [[ "$output" == *'"type": "feat"'* ]]
+  [[ "$output" == *'"type": "fix"'* ]]
+}
+
+@test "--json works with DAYS filter" {
+  git -C "$TMPDIR" commit --allow-empty -m "feat: add login" -q
+  run zsh "$BIN" --json "$TMPDIR" 30
+  [ "$status" -eq 0 ]
+  [[ "$output" == *'"type": "feat"'* ]]
+  [[ "$output" == *'"period": "últimos 30 días"'* ]]
+}
+
+@test "--json outputs total 0 when no conventional commits" {
+  git -C "$TMPDIR" commit --allow-empty -m "initial" -q
+  run zsh "$BIN" --json "$TMPDIR"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *'"total": 0'* ]]
+}
+
+@test "--json flag works in any argument position" {
+  git -C "$TMPDIR" commit --allow-empty -m "feat: add login" -q
+  run zsh "$BIN" "$TMPDIR" --json
+  [ "$status" -eq 0 ]
+  [[ "$output" == *'"total": 1'* ]]
 }
 
 # ── Output format ─────────────────────────────────────────────────────────────
