@@ -4,7 +4,7 @@
 $ErrorActionPreference = "Stop"
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $Root = Split-Path -Parent $ScriptDir
-$Profile = $PROFILE.CurrentUserAllHosts
+$ProfilePath = $PROFILE.CurrentUserAllHosts
 $MarkerStart = "# >>> conventional-stats >>>"
 $MarkerEnd   = "# <<< conventional-stats <<<"
 
@@ -36,8 +36,8 @@ foreach ($pkg in $packages) {
 }
 
 # ── Aliases en perfil de PowerShell ──────────────────────────────────────────
-if (-not (Test-Path $Profile)) { New-Item -Path $Profile -Force | Out-Null }
-$content = Get-Content $Profile -Raw -ErrorAction SilentlyContinue
+if (-not (Test-Path $ProfilePath)) { New-Item -Path $ProfilePath -Force | Out-Null }
+$content = Get-Content $ProfilePath -Raw -ErrorAction SilentlyContinue
 
 if ($content -match [regex]::Escape($MarkerStart)) {
   warn "Perfil ya configurado."
@@ -49,10 +49,14 @@ $MarkerStart
 . "$Root\config\git-commits.ps1"
 $MarkerEnd
 "@
-  Add-Content -Path $Profile -Value $block
+  Add-Content -Path $ProfilePath -Value $block
   ok "Perfil de PowerShell actualizado"
 }
 
 Write-Host ""
 Write-Host "✅ Instalación completada. Reinicia PowerShell." -ForegroundColor Green
+Write-Host ""
+Write-Host "ℹ  conventional-stats CLI: el binario es un script zsh y no puede" -ForegroundColor Yellow
+Write-Host "   ejecutarse nativamente en Windows. Usa WSL2 con zsh para acceder" -ForegroundColor Yellow
+Write-Host "   a 'conventional-stats' desde la línea de comandos." -ForegroundColor Yellow
 Write-Host ""

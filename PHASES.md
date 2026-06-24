@@ -31,7 +31,7 @@ Tres problemas en `config/git-commits.zsh` que confunden o pierden datos silenci
 
 ---
 
-## Phase 3 — Windows installer `[ ]`
+## Phase 3 — Windows installer `[x]`
 
 El instalador de Windows está completamente roto: crea entradas rotas en el perfil y no instala el CLI.
 
@@ -77,6 +77,6 @@ Fase de madurez post-publicación. Se planificará en detalle al llegar.
 |-------|--------|--------|
 | 1 | `[x]` completa | fix: correct --since filter and bar chart zero-fill |
 | 2 | `[x]` completa | fix: pass full message and clarify tests/test: naming |
-| 3 | `[ ]` pendiente | — |
+| 3 | `[x]` completa | feat: add PowerShell config files and fix Windows installer |
 | 4 | `[ ]` pendiente | — |
 | 5 | `[ ]` pendiente | — |
