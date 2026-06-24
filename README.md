@@ -2,32 +2,22 @@
 
 ![CI](https://github.com/nicovegasr/conventional-stats/actions/workflows/ci.yml/badge.svg)
 
-A lightweight shell toolkit for speed-focused developers — commit faster with shell shortcuts and visualize your [Conventional Commits](https://www.conventionalcommits.org/) history at a glance.
+Un toolkit de shell minimalista para desarrolladores — haz commits más rápido con atajos de teclado y visualiza el historial de tus [Conventional Commits](https://www.conventionalcommits.org/) directamente desde la terminal.
 
-```
-📊 conventional-stats — my-app (last 90 days)
-──────────────────────────────────────────────────
-  feat      ████████████████████████  12
-  fix       ████████████████          8
-  chore     ████████                  4
-  refactor  ████████                  4
-  docs      ████                      2
-──────────────────────────────────────────────────
-  Total    30 commits
-```
+![Demo de conventional-stats en un repo real](assets/demo.png)
 
 ---
 
-## Why
+## Por qué
 
-Most developers already follow Conventional Commits — but almost nobody visualizes them. `conventional-stats` gives you two things:
+La mayoría de desarrolladores ya siguen Conventional Commits — pero casi nadie los visualiza. `conventional-stats` te da dos cosas:
 
-1. **Shell shortcuts** that enforce the convention as you type — `feat "add login"` → `git add . && git commit -m "feat: add login."`
-2. **A CLI** to audit any repo's commit history by semantic type, directly from the terminal
+1. **Atajos de shell** que refuerzan la convención mientras escribes — `feat "añadir login"` → `git add . && git commit -m "feat: añadir login."`
+2. **Una CLI** para auditar el historial de cualquier repo por tipo semántico, directamente desde la terminal
 
 ---
 
-## Installation
+## Instalación
 
 ### Mac / Linux
 
@@ -46,73 +36,73 @@ cd conventional-stats
 .\windows\install.ps1
 ```
 
-> **Note:** The CLI (`conventional-stats`) is a zsh script and does not run natively on Windows. Use WSL2 with zsh to access it. The shell commit shortcuts work in PowerShell without WSL2.
+> **Nota:** La CLI (`conventional-stats`) es un script zsh y no funciona de forma nativa en Windows. Usa WSL2 con zsh para acceder a ella. Los atajos de commit funcionan en PowerShell sin necesidad de WSL2.
 
 ---
 
-## Shell shortcuts
+## Atajos de shell
 
-Every function follows the same pattern:
+Cada función sigue el mismo patrón:
 
 ```
-<type> "message"  →  git add . && git commit -m "<type>: message."
+<tipo> "mensaje"  →  git add . && git commit -m "<tipo>: mensaje."
 ```
 
-The trailing period is added automatically if missing. Multi-word messages work without quotes: `feat add login flow`.
+El punto final se añade automáticamente si falta. Los mensajes con varias palabras funcionan sin comillas: `feat añadir flujo de login`.
 
-#### TDD workflow
+#### Flujo TDD
 
-| Command | Commit message |
-|---------|---------------|
-| `red "failing auth test"` | `red: failing auth test.` |
-| `green "auth test passes"` | `green: auth test passes.` |
-| `refactor "extract auth helper"` | `refactor: extract auth helper.` |
+| Comando | Mensaje de commit |
+|---------|------------------|
+| `red "test de auth fallando"` | `red: test de auth fallando.` |
+| `green "test de auth pasa"` | `green: test de auth pasa.` |
+| `refactor "extraer helper de auth"` | `refactor: extraer helper de auth.` |
 
 #### Conventional Commits
 
-| Command | Type | When to use |
-|---------|------|-------------|
-| `feat "add OAuth login"` | `feat` | New feature |
-| `fix "null check on logout"` | `fix` | Bug fix |
-| `hotfix "patch XSS in input"` | `hotfix` | Urgent production fix |
-| `docs "update API reference"` | `docs` | Documentation |
-| `style "format controllers"` | `style` | Formatting, no logic change |
-| `tests "cover edge cases"` | `test` | Tests added or fixed |
-| `chore "upgrade dependencies"` | `chore` | Maintenance, tooling |
-| `perf "cache DB queries"` | `perf` | Performance improvement |
-| `ci "add lint step"` | `ci` | CI/CD configuration |
-| `build "switch to esbuild"` | `build` | Build system |
+| Comando | Tipo | Cuándo usarlo |
+|---------|------|---------------|
+| `feat "añadir OAuth login"` | `feat` | Nueva funcionalidad |
+| `fix "null check en logout"` | `fix` | Corrección de bug |
+| `hotfix "parchear XSS en input"` | `hotfix` | Corrección urgente en producción |
+| `docs "actualizar referencia API"` | `docs` | Documentación |
+| `style "formatear controladores"` | `style` | Formato, sin cambio de lógica |
+| `tests "cubrir casos borde"` | `test` | Tests añadidos o corregidos |
+| `chore "actualizar dependencias"` | `chore` | Mantenimiento, tooling |
+| `perf "cachear consultas BD"` | `perf` | Mejora de rendimiento |
+| `ci "añadir paso de lint"` | `ci` | Configuración de CI/CD |
+| `build "migrar a esbuild"` | `build` | Sistema de build |
 
-Run `feat --help` (or any type + `--help`) to see the full list in your terminal.
+Ejecuta `feat --help` (o cualquier tipo + `--help`) para ver la lista completa en tu terminal.
 
-> **Reverting commits:** use `git revert <hash>` directly — git generates the correct conventional message automatically (`Revert "feat: ..."`), and `conventional-stats` will count it in the `revert` category.
+> **Revertir commits:** usa `git revert <hash>` directamente — git genera el mensaje convencional correcto de forma automática (`Revert "feat: ..."`), y `conventional-stats` lo contará en la categoría `revert`.
 
 ---
 
-## conventional-stats CLI
+## CLI conventional-stats
 
-Analyze any git repo by commit type:
+Analiza cualquier repo git por tipo de commit:
 
 ```bash
-# Current directory
+# Directorio actual
 conventional-stats
 
-# Specific repo
-conventional-stats ~/projects/my-app
+# Repo específico
+conventional-stats ~/proyectos/mi-app
 
-# Filter by date range
-conventional-stats ~/projects/my-app 90
+# Filtrar por rango de fechas
+conventional-stats ~/proyectos/mi-app 90
 
-# JSON output (pipeable to jq, scripts, etc.)
-conventional-stats --json ~/projects/my-app
-conventional-stats --json ~/projects/my-app 90
+# Salida JSON (pipeable a jq, scripts, etc.)
+conventional-stats --json ~/proyectos/mi-app
+conventional-stats --json ~/proyectos/mi-app 90
 ```
 
-JSON output format:
+Formato de salida JSON:
 
 ```json
 {
-  "repo": "my-app",
+  "repo": "mi-app",
   "period": "últimos 90 días",
   "commits": [
     { "type": "feat", "count": 12 },
@@ -122,80 +112,80 @@ JSON output format:
 }
 ```
 
-Works with any repo that uses Conventional Commits — yours, a colleague's, or an open source project.
+Funciona con cualquier repo que use Conventional Commits — el tuyo, el de un compañero o un proyecto open source.
 
 ---
 
-## How it works
+## Cómo funciona
 
-### Shell shortcut call flow
-
-```
-feat "add login"
-  └─ _dispatch_commit "feat" "add login"
-       └─ _execute_commit "feat" "add login."
-            └─ git add . && git commit -m "feat: add login."
-```
-
-Three layers: public commands fix the commit type and delegate to `_dispatch_commit`, which handles `--help` and empty-input cases, then calls `_execute_commit` for the actual git operation.
-
-### CLI data pipeline
+### Flujo de los atajos de shell
 
 ```
-conventional-stats ~/my-app 90
-  └─ git log --format="%s" --since="90 days ago"   (single subprocess)
-       └─ regex match per commit subject             (in-memory, no extra forks)
-            └─ proportional bar chart → stdout
+feat "añadir login"
+  └─ _dispatch_commit "feat" "añadir login"
+       └─ _execute_commit "feat" "añadir login."
+            └─ git add . && git commit -m "feat: añadir login."
 ```
 
-A single `git log` reads all subjects; the per-type counts are built in an associative array. Bar width scales so the type with the most commits always fills the full 24-character column.
+Tres capas: los comandos públicos fijan el tipo de commit y delegan en `_dispatch_commit`, que gestiona `--help` y los casos sin argumento, y llama a `_execute_commit` para la operación git real.
 
-### Key design decisions
+### Pipeline de datos de la CLI
 
-| Decision | Reason |
+```
+conventional-stats ~/mi-app 90
+  └─ git log --format="%s" --since="90 days ago"   (un único subproceso)
+       └─ regex match por subject de commit          (en memoria, sin forks extra)
+            └─ gráfico de barras proporcional → stdout
+```
+
+Un único `git log` lee todos los subjects; los conteos por tipo se construyen en un array asociativo. El ancho de las barras escala para que el tipo con más commits siempre ocupe la columna completa de 24 caracteres.
+
+### Decisiones de diseño clave
+
+| Decisión | Motivo |
 |----------|--------|
-| Single `git log` for all types | Avoids one subprocess per type (14 forks vs. 1) |
-| `--since` stored as an array | Prevents word-splitting on `"30 days ago"` during expansion |
-| Config copied to `~/.config/conventional-stats/` | Moving or deleting the cloned repo doesn't break the shell |
-| Marker blocks in `.zshrc` | `uninstall.sh` can locate and remove exactly the injected block |
-| CLI uses `#!/usr/bin/env zsh` | macOS ships bash 3.2 (no associative arrays); zsh is built-in on Apple Silicon |
-| Shell command `tests` → commit prefix `test:` | Avoids shadowing the `test` builtin in zsh |
+| Un único `git log` para todos los tipos | Evita un subproceso por tipo (14 forks vs. 1) |
+| `--since` almacenado como array | Previene word-splitting en `"30 days ago"` durante la expansión |
+| Config copiada a `~/.config/conventional-stats/` | Mover o borrar el repo clonado no rompe la shell |
+| Bloques marcados en `.zshrc` | `uninstall.sh` puede localizar y eliminar exactamente el bloque inyectado |
+| CLI usa `#!/usr/bin/env zsh` | macOS incluye bash 3.2 (sin arrays asociativos); zsh viene integrado en Apple Silicon |
+| Comando shell `tests` → prefijo de commit `test:` | Evita hacer shadowing del builtin `test` de zsh |
 
 ---
 
-## Project structure
+## Estructura del proyecto
 
 ```
 conventional-stats/
-├── bin/conventional-stats      # CLI: reads git history, renders bar chart
+├── bin/conventional-stats      # CLI: lee el historial git y renderiza el gráfico de barras
 ├── config/
-│   ├── git-commits.zsh         # Commit shortcuts sourced into .zshrc (Unix/macOS)
-│   └── git-commits.ps1         # Commit shortcuts dot-sourced into PS profile (Windows)
+│   ├── git-commits.zsh         # Atajos de commit incluidos en .zshrc (Unix/macOS)
+│   └── git-commits.ps1         # Atajos de commit en el perfil PS (Windows)
 ├── tests/
-│   └── conventional-stats.bats # BATS test suite for the CLI
-├── install.sh                  # Copies CLI to ~/.local/bin, injects .zshrc block
-├── uninstall.sh                # Removes CLI, config dir, and .zshrc block
+│   └── conventional-stats.bats # Suite de tests BATS para la CLI
+├── install.sh                  # Copia la CLI a ~/.local/bin, inyecta bloque en .zshrc
+├── uninstall.sh                # Elimina la CLI, el directorio de config y el bloque de .zshrc
 └── windows/
-    └── install.ps1             # Injects git-commits.ps1 into PowerShell profile
+    └── install.ps1             # Inyecta git-commits.ps1 en el perfil de PowerShell
 ```
 
 ---
 
-## Uninstall
+## Desinstalación
 
 ```bash
 ./uninstall.sh
 source ~/.zshrc
 ```
 
-This removes the block added to your `.zshrc`, the `conventional-stats` binary, and the config directory. A `.zshrc.bak` backup is created automatically.
+Elimina el bloque añadido a tu `.zshrc`, el binario `conventional-stats` y el directorio de configuración. Se crea automáticamente una copia de seguridad en `.zshrc.bak`.
 
 ---
 
-## Requirements
+## Requisitos
 
-| Tool | Mac | Linux | Windows |
-|------|-----|-------|---------|
-| zsh | built-in | `apt install zsh` | WSL2 |
-| git | built-in | built-in | built-in |
-| PowerShell 5+ | — | — | built-in |
+| Herramienta | Mac | Linux | Windows |
+|-------------|-----|-------|---------|
+| zsh | integrado | `apt install zsh` | WSL2 |
+| git | integrado | integrado | integrado |
+| PowerShell 5+ | — | — | integrado |
