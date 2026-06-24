@@ -11,10 +11,5 @@ IMAGE="mcr.microsoft.com/dotnet/sdk:8.0"
 
 exec docker run --rm -v "$REPO_DIR:/repo" -w /repo "$IMAGE" bash -c '
   git config --global --add safe.directory "*"
-  pwsh -NoProfile -Command "
-    Set-PSRepository PSGallery -InstallationPolicy Trusted
-    Install-Module Pester -Force -SkipPublisherCheck -Scope CurrentUser
-    \$r = Invoke-Pester -Path tests/git-commits.Tests.ps1 -Output Detailed -PassThru
-    exit \$r.FailedCount
-  "
+  pwsh -NoProfile -File tests/run-pester.ps1
 '
