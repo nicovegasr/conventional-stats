@@ -17,7 +17,7 @@ Dos bugs silenciosos en `bin/conventional-stats` que producen resultados incorre
 
 ---
 
-## Phase 2 — Shell function UX `[ ]`
+## Phase 2 — Shell function UX `[x]`
 
 Tres problemas en `config/git-commits.zsh` que confunden o pierden datos silenciosamente.
 
@@ -76,7 +76,7 @@ Fase de madurez post-publicación. Se planificará en detalle al llegar.
 | Phase | Estado | Commit |
 |-------|--------|--------|
 | 1 | `[x]` completa | fix: correct --since filter and bar chart zero-fill |
-| 2 | `[ ]` pendiente | — |
+| 2 | `[x]` completa | fix: pass full message and clarify tests/test: naming |
 | 3 | `[ ]` pendiente | — |
 | 4 | `[ ]` pendiente | — |
 | 5 | `[ ]` pendiente | — |

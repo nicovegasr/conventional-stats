@@ -13,7 +13,7 @@ _commit_help() {
   echo "  hotfix   \"msg\"   Corrección urgente en producción"
   echo "  docs     \"msg\"   Documentación"
   echo "  style    \"msg\"   Formato, sin cambio de lógica"
-  echo "  tests    \"msg\"   Tests añadidos o corregidos"
+  echo "  tests    \"msg\"   Tests añadidos o corregidos  (prefijo: test:)"
   echo "  chore    \"msg\"   Mantenimiento, dependencias, tooling"
   echo "  perf     \"msg\"   Mejora de rendimiento"
   echo "  ci       \"msg\"   Configuración de CI/CD"
@@ -28,24 +28,26 @@ _do_commit() {
 }
 
 _commit_fn() {
-  local type="$1" arg="$2"
+  local type="$1"
+  shift
+  local arg="${*:-}"
   if [[ "$arg" == "--help" || -z "$arg" ]]; then
     _commit_help; return 0
   fi
   _do_commit "$type" "$arg"
 }
 
-red()      { _commit_fn "red"      "$1"; }
-green()    { _commit_fn "green"    "$1"; }
-refactor() { _commit_fn "refactor" "$1"; }
-feat()     { _commit_fn "feat"     "$1"; }
-fix()      { _commit_fn "fix"      "$1"; }
-hotfix()   { _commit_fn "hotfix"   "$1"; }
-docs()     { _commit_fn "docs"     "$1"; }
-style()    { _commit_fn "style"    "$1"; }
-tests()    { _commit_fn "test"     "$1"; }
-chore()    { _commit_fn "chore"    "$1"; }
-perf()     { _commit_fn "perf"     "$1"; }
-ci()       { _commit_fn "ci"       "$1"; }
-build()    { _commit_fn "build"    "$1"; }
-revert()   { _commit_fn "revert"   "$1"; }
+red()      { _commit_fn "red"      "$@"; }
+green()    { _commit_fn "green"    "$@"; }
+refactor() { _commit_fn "refactor" "$@"; }
+feat()     { _commit_fn "feat"     "$@"; }
+fix()      { _commit_fn "fix"      "$@"; }
+hotfix()   { _commit_fn "hotfix"   "$@"; }
+docs()     { _commit_fn "docs"     "$@"; }
+style()    { _commit_fn "style"    "$@"; }
+tests()    { _commit_fn "test"     "$@"; }
+chore()    { _commit_fn "chore"    "$@"; }
+perf()     { _commit_fn "perf"     "$@"; }
+ci()       { _commit_fn "ci"       "$@"; }
+build()    { _commit_fn "build"    "$@"; }
+revert()   { _commit_fn "revert"   "$@"; }
