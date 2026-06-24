@@ -30,6 +30,13 @@ else
   warn "conventional-stats no encontrado en $HOME/.local/bin"
 fi
 
+# ── Eliminar config ───────────────────────────────────────────────────────────
+CONFIG_DIR="$HOME/.config/conventional-stats"
+if [[ -d "$CONFIG_DIR" ]]; then
+  rm -rf "$CONFIG_DIR"
+  ok "config eliminado de $CONFIG_DIR"
+fi
+
 echo ""
 echo "✅ Desinstalación completada."
 echo "   Ejecuta: source ~/.zshrc"

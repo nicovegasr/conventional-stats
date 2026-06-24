@@ -32,20 +32,22 @@ if [[ -n "$DAYS" ]]; then
 fi
 
 TYPES=(feat fix hotfix refactor red green docs style test chore perf ci build revert)
-LABELS=(
-  "feat    " "fix     " "hotfix  " "refactor"
-  "red     " "green   " "docs    " "style   "
-  "test    " "chore   " "perf    " "ci      "
-  "build   " "revert  "
-)
 
 typeset -A counts
 total=0
 max=0
 
+while IFS= read -r subject; do
+  for type in "${TYPES[@]}"; do
+    if [[ "$subject" =~ ^${type}(\(.+\))?!?: ]]; then
+      counts[$type]=$(( ${counts[$type]:-0} + 1 ))
+      break
+    fi
+  done
+done < <(git -C "$REPO" log --oneline "${SINCE[@]}" --format="%s" 2>/dev/null)
+
 for type in "${TYPES[@]}"; do
-  n=$(git -C "$REPO" log --oneline "${SINCE[@]}" --format="%s" 2>/dev/null \
-    | grep -ciE "^${type}(\(.+\))?!?:" || true)
+  n=${counts[$type]:-0}
   counts[$type]=$n
   total=$((total + n))
   [[ $n -gt $max ]] && max=$n
@@ -65,12 +67,10 @@ echo "📊 conventional-stats — ${REPO_NAME} (${PERIOD})"
 echo "──────────────────────────────────────────────────"
 
 printed=0
-for i in {1..${#TYPES[@]}}; do
-  type="${TYPES[$i]}"
-  label="${LABELS[$i]}"
-  n=${counts[$type]}
+for type in "${TYPES[@]}"; do
+  n=${counts[$type]:-0}
   [[ $n -eq 0 ]] && continue
-  printf "  %s  %-${BAR_WIDTH}s  %s\n" "$label" "$(bar $n)" "$n"
+  printf "  %-8s  %-${BAR_WIDTH}s  %s\n" "$type" "$(bar $n)" "$n"
   printed=$((printed + 1))
 done
 

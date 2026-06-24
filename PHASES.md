@@ -44,7 +44,7 @@ El instalador de Windows está completamente roto: crea entradas rotas en el per
 
 ---
 
-## Phase 4 — Code quality & architecture `[ ]`
+## Phase 4 — Code quality & architecture `[x]`
 
 Mejoras de mantenibilidad y rendimiento que no bloquean la publicación pero sí la calidad a largo plazo.
 
@@ -78,5 +78,5 @@ Fase de madurez post-publicación. Se planificará en detalle al llegar.
 | 1 | `[x]` completa | fix: correct --since filter and bar chart zero-fill |
 | 2 | `[x]` completa | fix: pass full message and clarify tests/test: naming |
 | 3 | `[x]` completa | feat: add PowerShell config files and fix Windows installer |
-| 4 | `[ ]` pendiente | — |
+| 4 | `[x]` completa | refactor: single git log pass, stable config path, drop LABELS array |
 | 5 | `[ ]` pendiente | — |

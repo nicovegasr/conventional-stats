@@ -49,6 +49,13 @@ cp "$SCRIPT_DIR/bin/conventional-stats" "$BIN_DIR/conventional-stats"
 chmod +x "$BIN_DIR/conventional-stats"
 ok "conventional-stats → $BIN_DIR/conventional-stats"
 
+# ── Config files ──────────────────────────────────────────────────────────────
+CONFIG_DIR="$HOME/.config/conventional-stats"
+mkdir -p "$CONFIG_DIR"
+cp "$SCRIPT_DIR/config/aliases.zsh" "$CONFIG_DIR/aliases.zsh"
+cp "$SCRIPT_DIR/config/git-commits.zsh" "$CONFIG_DIR/git-commits.zsh"
+ok "config → $CONFIG_DIR"
+
 # ── .zshrc ────────────────────────────────────────────────────────────────────
 touch "$ZSHRC"
 
@@ -58,8 +65,8 @@ else
   cat >> "$ZSHRC" <<EOF
 
 ${MARKER_START}
-source "${SCRIPT_DIR}/config/aliases.zsh"
-source "${SCRIPT_DIR}/config/git-commits.zsh"
+source "\$HOME/.config/conventional-stats/aliases.zsh"
+source "\$HOME/.config/conventional-stats/git-commits.zsh"
 export PATH="\$HOME/.local/bin:\$PATH"
 ${MARKER_END}
 EOF
