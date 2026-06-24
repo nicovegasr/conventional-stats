@@ -75,7 +75,7 @@ cd conventional-stats
 
 La **CLI** `conventional-stats` es un script zsh y no corre nativamente en Windows: usa WSL2 con zsh para acceder a ella.
 
-> ⚠️ **El soporte de Windows / PowerShell no está probado en CI** ni manualmente. La lógica de `git-commits.ps1` replica la de zsh, pero no hay pwsh en la matriz de CI. Ver [testing.md](testing.md).
+> ✅ Los atajos de PowerShell (`git-commits.ps1`) se testean con Pester en CI (windows-latest, PowerShell 5.1 y 7) y localmente vía `./run-ps-tests.sh`. La **CLI** sí sigue siendo solo zsh/WSL2. Ver [testing.md](testing.md).
 
 ---
 

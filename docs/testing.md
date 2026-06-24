@@ -2,7 +2,7 @@
 
 [← Volver al README](../README.md)
 
-El proyecto se testea con [BATS](https://github.com/bats-core/bats-core) (Bash Automated Testing System) y se valida con [ShellCheck](https://www.shellcheck.net/) en CI.
+El proyecto se testea con [BATS](https://github.com/bats-core/bats-core) (los scripts de shell) y [Pester](https://pester.dev/) (los atajos de PowerShell), y se valida con [ShellCheck](https://www.shellcheck.net/) en CI.
 
 ---
 
@@ -27,9 +27,17 @@ Sourcea `config/git-commits.zsh` dentro de un repo temporal y comprueba:
 - **Opciones desconocidas:** `feat -x`, `feat -hacd`, `feat --bogus` se rechazan con código 1 y sin commit.
 - **Comillas:** un mensaje multi-palabra sin comillas se rechaza; una palabra suelta (indistinguible de entrecomillada) sí commitea.
 
+### `tests/git-commits.Tests.ps1` — los atajos de PowerShell (12 tests, Pester)
+
+Espejo de la suite de zsh, sobre `config/git-commits.ps1`: happy path y prefijos, ayuda (sin mensaje / `-h` / `--help`) sin commit, rechazo de opciones desconocidas (`-x`, `-hacd`, `--bogus`) y de mensajes multi-palabra sin comillas.
+
+> Estos tests destaparon un bug real: las wrappers usaban splat `@args`, que hace que PowerShell interprete los tokens con guion como nombres de parámetro antes de llegar a la validación. Se arregló pasando `$args` como un único array (sin splat). Ver [shortcuts.md](shortcuts.md).
+
 ---
 
 ## Cómo ejecutarlos
+
+### BATS (shell)
 
 Necesitas `zsh` y `bats`:
 
@@ -44,31 +52,39 @@ sudo apt-get install -y zsh bats
 Desde la raíz del repo:
 
 ```bash
-bats tests/                       # toda la suite
+bats tests/                          # toda la suite de shell
 bats tests/conventional-stats.bats   # solo la CLI
-bats tests/git-commits.bats          # solo los atajos
+bats tests/git-commits.bats          # solo los atajos zsh
 ```
+
+### Pester (PowerShell)
+
+Si tienes PowerShell + Pester instalados:
+
+```bash
+pwsh -Command "Invoke-Pester -Path tests/git-commits.Tests.ps1 -Output Detailed"
+```
+
+Si no, hay un runner que lo corre dentro de un contenedor (requiere Docker):
+
+```bash
+./run-ps-tests.sh
+```
+
+> Usa la imagen `mcr.microsoft.com/dotnet/sdk` porque trae `pwsh` + `git` nativos para arm64. La imagen suelta `mcr.microsoft.com/powershell` es solo amd64 y **segfaultea bajo emulación QEMU en Apple Silicon**.
 
 ---
 
 ## Pipeline de CI
 
-`.github/workflows/ci.yml` se ejecuta en cada push y pull request a `main`, con dos jobs:
+`.github/workflows/ci.yml` se ejecuta en cada push y pull request a `main`, con tres jobs:
 
 | Job | Qué hace |
 |-----|----------|
 | **ShellCheck** | Analiza todos los scripts (`severity: error`) en ubuntu-latest. |
 | **BATS** | Corre `bats tests/` en una matriz de **ubuntu-latest** y **macos-latest** (instalando zsh + bats en cada uno). |
+| **Pester** | Corre `Invoke-Pester` en **windows-latest**, en matriz de **Windows PowerShell 5.1** (`powershell`) y **PowerShell 7** (`pwsh`). |
 
-Que la matriz incluya macOS importa: la CLI usa `#!/usr/bin/env zsh` precisamente porque el bash de macOS es la versión 3.2.
+Que la matriz de BATS incluya macOS importa: la CLI usa `#!/usr/bin/env zsh` precisamente porque el bash de macOS es la versión 3.2. Y que el job de Pester cubra 5.1 **y** 7 importa porque el binding de argumentos con guion es justo donde PowerShell puede diferir entre versiones.
 
----
-
-## Windows / PowerShell — no testeado
-
-`config/git-commits.ps1` replica la lógica de los atajos de zsh (mismo comportamiento: comillas obligatorias, ayuda con `-h`/`--help`, rechazo de opciones desconocidas), pero:
-
-- **No hay pwsh en la matriz de CI** — esa rama no se ejecuta en cada push.
-- El binding de argumentos con guion de PowerShell tiene reglas propias que **no están verificadas** en este entorno.
-
-Tómalo como "best effort" hasta que se añada un job de PowerShell a CI.
+> ℹ️ Los tests de Pester pasan en pwsh 7 (verificado localmente vía Docker). El job de `windows-latest` los valida además en Windows PowerShell 5.1, el runtime real de la mayoría de usuarios de Windows. Los runners de Windows facturan 2× minutos en GitHub-hosted, pero la suite es pequeña.

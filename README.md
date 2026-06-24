@@ -29,7 +29,7 @@ cd conventional-stats
 .\windows\install.ps1
 ```
 
-> **Nota:** La CLI (`conventional-stats`) es un script zsh y no funciona de forma nativa en Windows — usa WSL2 con zsh para acceder a ella. Los atajos de commit sí funcionan en PowerShell sin WSL2, pero **el soporte de Windows no está probado en CI** (ver [docs/testing.md](docs/testing.md)).
+> **Nota:** La CLI (`conventional-stats`) es un script zsh y no funciona de forma nativa en Windows — usa WSL2 con zsh para acceder a ella. Los atajos de commit sí funcionan en PowerShell sin WSL2 y **se testean en CI** (Pester en windows-latest, PowerShell 5.1 y 7 — ver [docs/testing.md](docs/testing.md)).
 
 ---
 

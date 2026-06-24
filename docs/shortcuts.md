@@ -81,4 +81,4 @@ Tres capas:
 - **`_dispatch_commit`** gestiona la ayuda (sin mensaje / `-h` / `--help`), rechaza opciones desconocidas y mensajes multi-palabra sin comillas.
 - **`_execute_commit`** añade el punto final si falta y ejecuta `git add . && git commit`.
 
-La misma estructura está replicada en `config/git-commits.ps1` para PowerShell (ver la nota de Windows en [testing.md](testing.md)).
+La misma estructura está replicada en `config/git-commits.ps1` para PowerShell, con un detalle clave: las wrappers pasan `$args` como un **único array** (no splat `@args`). Si usaran `@args`, PowerShell interpretaría los tokens con guion (`-x`, `--bogus`) como nombres de parámetro antes de que lleguen a la validación, y `feat -x` acabaría mostrando ayuda o lanzando un error de binding en vez del mensaje "opción desconocida". Se cubre con Pester (ver [testing.md](testing.md)).
