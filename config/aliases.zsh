@@ -1,4 +1,7 @@
+# shellcheck shell=bash
+# shellcheck disable=SC1091
 source "$(brew --prefix 2>/dev/null)/share/zsh-autosuggestions/zsh-autosuggestions.zsh" 2>/dev/null
+# shellcheck disable=SC1091
 source "$(brew --prefix 2>/dev/null)/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" 2>/dev/null
 
 alias c='clear'

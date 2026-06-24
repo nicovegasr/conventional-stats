@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 _commit_help() {
   echo "Uso: <tipo> \"mensaje\"  →  git add . && git commit -m \"<tipo>: mensaje.\""
   echo "El punto final se añade automáticamente si falta."
