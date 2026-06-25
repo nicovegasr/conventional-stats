@@ -51,7 +51,7 @@ if [[ "${1:-}" == "audit" ]]; then
     echo ""
     echo "  --days N             Limitar a los últimos N días (default: todo)"
     echo "  --repo PATH          Auditar otro repositorio (default: directorio actual)"
-    echo "  --json               JSON completo (a stdout si hay pipe; si no, a audit.json)"
+    echo "  --json               JSON completo (a stdout si hay pipe; si no, a conventional-audit.json)"
     echo "  --ignore PATRÓN...   Excluir archivos (glob/dir). Ej: --ignore '*.gradle' '/build/*'"
     echo "  --set-ignore PATRÓN... Guardar patrones en .auditignore del repo y salir"
     echo "  --init-ignore        Crear un .auditignore de plantilla (con defaults comunes) y salir"
@@ -329,7 +329,7 @@ EOF
     # Piped/redirected → stream to stdout (keeps `| jq` and `> file.json`).
     # Interactive terminal → write a file instead of flooding the screen.
     if [[ -t 1 ]]; then
-      out="audit.json"
+      out="conventional-audit.json"
       _audit_emit_json > "$out"
       echo "✓ ${#audit_sorted[@]} hotspots → ${out}"
     else

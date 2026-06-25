@@ -95,7 +95,7 @@ A diferencia del render de terminal (top 20, con color), el JSON es **completo y
 
 `score = commits × churn` es la clave de orden (descendente).
 
-**Dónde va el JSON**: si rediriges o haces pipe (`audit --json | jq`, `audit --json > f.json`) se emite por stdout. Si lo lanzas a pelo en la terminal, en vez de inundarla escribe `audit.json` en el directorio actual y muestra `✓ N hotspots → audit.json`.
+**Dónde va el JSON**: si rediriges o haces pipe (`audit --json | jq`, `audit --json > f.json`) se emite por stdout. Si lo lanzas a pelo en la terminal, en vez de inundarla escribe `conventional-audit.json` en el directorio actual y muestra `✓ N hotspots → conventional-audit.json` (nombre con prefijo para que sea fácil de ignorar en `.gitignore`).
 
 ### Notas de implementación
 

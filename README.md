@@ -84,7 +84,7 @@ conventional-stats audit --days 90               # últimos 90 días
 conventional-stats audit --ignore '*.gradle'     # excluir puntualmente (glob/dir)
 conventional-stats audit --init-ignore           # generar un .auditignore de plantilla
 conventional-stats audit --set-ignore '*.md'     # recordar exclusiones en .auditignore
-conventional-stats audit --json                  # informe completo → audit.json
+conventional-stats audit --json                  # informe completo → conventional-audit.json
 conventional-stats audit --json | jq '.hotspots' # o por pipe, para filtrar al vuelo
 ```
 
@@ -94,7 +94,7 @@ En repos grandes recorrer el historial tarda unos segundos, así que muestra el 
 
 ### Salida JSON a un archivo
 
-`--json` devuelve el informe **completo** (sin truncar, con el desglose por tipo). Si lo rediriges o haces pipe (`| jq`, `> informe.json`) sale por stdout; si lo lanzas a pelo en la terminal, en vez de inundarla **escribe `audit.json`** y te confirma:
+`--json` devuelve el informe **completo** (sin truncar, con el desglose por tipo). Si lo rediriges o haces pipe (`| jq`, `> informe.json`) sale por stdout; si lo lanzas a pelo en la terminal, en vez de inundarla **escribe `conventional-audit.json`** (nombre con prefijo, fácil de añadir al `.gitignore`) y te confirma:
 
 ![audit --json](assets/audit-json.png)
 
