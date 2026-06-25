@@ -51,7 +51,10 @@ conventional-stats audit --repo ~/proyectos/mi-app --days 90
 # Excluir archivos de forma puntual (globs y directorios)
 conventional-stats audit --ignore '*.gradle' '/build/*'
 
-# Guardar exclusiones en el proyecto (.auditignore) y salir
+# Generar un .auditignore de plantilla (con defaults comunes) para podarlo
+conventional-stats audit --init-ignore
+
+# Guardar exclusiones puntuales en el proyecto (.auditignore) y salir
 conventional-stats audit --set-ignore '*.gradle' '/build/*'
 
 # JSON completo, pipeable a jq
@@ -64,7 +67,7 @@ conventional-stats audit --json | jq '.hotspots[] | select(.fixes >= 3)'
 Se aplican, en este orden y de forma acumulativa:
 
 1. **Defaults internos**: `*.lock`, `package-lock.json`, `pnpm-lock.yaml`, `yarn.lock`, `go.sum`, `dist/`, `build/`, `node_modules/`, `vendor/` — high-churn por diseño, no son code smells.
-2. **`.auditignore`** del repo (un patrón por línea, `#` para comentarios). Se crea/actualiza con `--set-ignore`.
+2. **`.auditignore`** del repo (un patrón por línea, `#` para comentarios). Se añaden patrones con `--set-ignore`, o se genera una plantilla completa con `--init-ignore` (lockfiles, build, generados, manifiestos… para que borres lo que no aplique, estilo `.gitignore` generado).
 3. **`--ignore`** puntual para esa ejecución.
 
 Patrones soportados: glob sobre el nombre (`*.gradle`), glob sobre ruta completa (`src/**/*.kt`) y directorio (`build/`, que coincide a cualquier profundidad). Un `/` inicial es tolerado (`/build/*`).

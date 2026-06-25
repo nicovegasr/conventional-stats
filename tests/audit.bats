@@ -146,6 +146,23 @@ commit_file() {
   [ "$output" -eq 1 ]
 }
 
+@test "audit --init-ignore scaffolds a template .auditignore" {
+  run zsh "$BIN" audit --repo "$TMPDIR" --init-ignore
+  [ "$status" -eq 0 ]
+  [ -f "$TMPDIR/.auditignore" ]
+  run cat "$TMPDIR/.auditignore"
+  [[ "$output" == *"Cargo.lock"* ]]
+  [[ "$output" == *"node_modules/"* ]]
+  [[ "$output" == *"__snapshots__/"* ]]
+}
+
+@test "audit --init-ignore refuses to overwrite an existing file" {
+  zsh "$BIN" audit --repo "$TMPDIR" --init-ignore
+  run zsh "$BIN" audit --repo "$TMPDIR" --init-ignore
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"Ya existe"* ]]
+}
+
 @test "audit honours patterns saved in .auditignore" {
   commit_file "lib.gradle" "g"
   commit_file "main.kt" "k"

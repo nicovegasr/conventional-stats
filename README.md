@@ -82,6 +82,7 @@ A la derecha se lee de un vistazo: `@types/astro.ts` es el mayor imán de cambio
 conventional-stats audit                         # repo actual, todo el historial
 conventional-stats audit --days 90               # últimos 90 días
 conventional-stats audit --ignore '*.gradle'     # excluir puntualmente (glob/dir)
+conventional-stats audit --init-ignore           # generar un .auditignore de plantilla
 conventional-stats audit --set-ignore '*.md'     # recordar exclusiones en .auditignore
 conventional-stats audit --json                  # informe completo → audit.json
 conventional-stats audit --json | jq '.hotspots' # o por pipe, para filtrar al vuelo
