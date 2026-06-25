@@ -13,7 +13,7 @@ El proyecto se testea con [BATS](https://github.com/bats-core/bats-core) (los sc
 Ejecuta el binario real contra repos git temporales y comprueba:
 
 - **Ayuda y errores:** `--help` / `-h` salen con 0 e imprimen el uso; un directorio que no es git sale con 1.
-- **Conteo de commits:** cuenta `feat`, `fix`, etc. de forma independiente; reconoce los 14 tipos.
+- **Conteo de commits:** cuenta `feat`, `fix`, etc. de forma independiente; reconoce los 13 tipos.
 - **Variantes de Conventional Commits:** scopes (`feat(auth):`), breaking changes (`feat!:`, `feat(auth)!:`).
 - **Filtrado:** `--since` por días pasa correctamente el argumento multi-palabra a git; los tipos con 0 commits no se imprimen.
 - **Salida JSON:** `--json` produce `repo`, `period`, `commits[]` y `total`; funciona con filtro de días y en cualquier posición del argumento.

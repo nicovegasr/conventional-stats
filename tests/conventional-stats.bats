@@ -103,7 +103,7 @@ teardown() {
   [[ "$output" == *"Total    1"* ]]
 }
 
-@test "recognizes all 14 commit types" {
+@test "recognizes all 13 commit types" {
   git -C "$TMPDIR" commit --allow-empty -m "feat: a" -q
   git -C "$TMPDIR" commit --allow-empty -m "fix: b" -q
   git -C "$TMPDIR" commit --allow-empty -m "hotfix: c" -q
@@ -117,10 +117,9 @@ teardown() {
   git -C "$TMPDIR" commit --allow-empty -m "perf: k" -q
   git -C "$TMPDIR" commit --allow-empty -m "ci: l" -q
   git -C "$TMPDIR" commit --allow-empty -m "build: m" -q
-  git -C "$TMPDIR" commit --allow-empty -m "revert: n" -q
   run zsh "$BIN" "$TMPDIR"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"Total    14"* ]]
+  [[ "$output" == *"Total    13"* ]]
 }
 
 @test "test: prefix is counted (shell command is 'tests', commit prefix is 'test:')" {

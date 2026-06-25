@@ -137,19 +137,13 @@ conventional-stats ~/mi-app 90
 
 Un único `git log` lee todos los subjects; los conteos por tipo se construyen en un array asociativo en memoria. El ancho de las barras escala para que el tipo con más commits siempre ocupe la columna completa de 24 caracteres.
 
-Tipos reconocidos: `feat fix hotfix refactor red green docs style test chore perf ci build revert`. El regex acepta scopes y breaking changes: `feat:`, `feat(auth):`, `feat!:` y `feat(auth)!:`.
+Tipos reconocidos: `feat fix hotfix refactor red green docs style test chore perf ci build`. El regex acepta scopes y breaking changes: `feat:`, `feat(auth):`, `feat!:` y `feat(auth)!:`.
 
 ### Decisiones de diseño clave
 
 | Decisión | Motivo |
 |----------|--------|
-| Un único `git log` para todos los tipos | Evita un subproceso por tipo (14 forks vs. 1). |
+| Un único `git log` para todos los tipos | Evita un subproceso por tipo (13 forks vs. 1). |
 | `--since` almacenado como array | Previene word-splitting en `"30 days ago"` durante la expansión. |
 | `#!/usr/bin/env zsh` | macOS incluye bash 3.2 (sin arrays asociativos); zsh viene integrado en Apple Silicon. |
 | `--json` separada de los args posicionales | Se filtra en un loop, así puede aparecer en cualquier posición. |
-
----
-
-## Revertir commits
-
-Usa `git revert <hash>` directamente — git genera el mensaje convencional correcto de forma automática (`Revert "feat: ..."`), y `conventional-stats` lo cuenta en la categoría `revert`. Por eso no hay un atajo `revert` entre las funciones de shell.

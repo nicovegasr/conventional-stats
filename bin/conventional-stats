@@ -457,7 +457,7 @@ if [[ -n "$FILTER_DAYS" ]]; then
   PERIOD_LABEL="últimos ${FILTER_DAYS} días"
 fi
 
-COMMIT_TYPES=(feat fix hotfix refactor red green docs style test chore perf ci build revert)
+COMMIT_TYPES=(feat fix hotfix refactor red green docs style test chore perf ci build)
 
 typeset -A type_counts
 total_commits=0
