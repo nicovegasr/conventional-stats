@@ -147,14 +147,19 @@ if [[ "${1:-}" == "audit" ]]; then
   # (NF==1, from --pretty) followed by numstat lines (NF>=3: added, deleted,
   # path). --no-renames keeps paths clean ("a => b" / "{a => b}" are avoided).
   # awk output per file: commits<TAB>churn<TAB>fixes<TAB>type:n,...<TAB>path
+  # core.quotePath=false keeps non-ASCII paths as raw UTF-8 (otherwise git wraps
+  # them in quotes with octal escapes, which mangles both the render and JSON).
   audit_aggregate() {
-    git -C "$AUDIT_ROOT" log "${AUDIT_SINCE[@]}" \
+    git -C "$AUDIT_ROOT" -c core.quotePath=false log "${AUDIT_SINCE[@]}" \
       --numstat --no-renames --pretty=format:'%s' 2>/dev/null |
     awk -F'\t' '
       NF < 3 {                                   # subject line of a commit
         if ($0 == "") next
         is_fix = ($0 ~ /^(fix|hotfix)(\(.*\))?!?:/)
-        ctype  = (match($0, /^[a-z]+/)) ? substr($0, RSTART, RLENGTH) : "other"
+        # Only treat a leading word as a type when it has the conventional
+        # "type:" / "type(scope):" shape; anything else is "other".
+        ctype = "other"
+        if ($0 ~ /^[a-z]+(\([^)]*\))?!?:/) { match($0, /^[a-z]+/); ctype = substr($0, RSTART, RLENGTH) }
         next
       }
       {                                          # numstat line of that commit
@@ -217,9 +222,11 @@ if [[ "${1:-}" == "audit" ]]; then
         done
         types_json="${types_json%, }"
       fi
+      # Escape backslash then double-quote so any path is a valid JSON string.
+      file_json="${file//\\/\\\\}"; file_json="${file_json//\"/\\\"}"
       sep=","; [[ $i -eq $n ]] && sep=""
       printf '    { "file": "%s", "commits": %d, "churn": %d, "fixes": %d, "score": %d, "types": { %s } }%s\n' \
-        "$file" "$c" "$ch" "$fx" "$score" "$types_json" "$sep"
+        "$file_json" "$c" "$ch" "$fx" "$score" "$types_json" "$sep"
       i=$((i + 1))
     done
     printf '  ]\n'

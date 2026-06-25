@@ -219,6 +219,15 @@ commit_file() {
   [ "$status" -eq 0 ]
 }
 
+@test "audit --json stays valid with non-ASCII file names" {
+  command -v jq >/dev/null || skip "jq not installed"
+  # git quotes non-ASCII paths (core.quotePath) — a naive JSON build breaks here.
+  commit_file "src/café/España.txt" "1"
+  commit_file "src/日本語/ファイル.txt" "2"
+  run bash -c "zsh '$BIN' audit --repo '$TMPDIR' --json | jq -e '.hotspots | length >= 2'"
+  [ "$status" -eq 0 ]
+}
+
 # ── Period label ─────────────────────────────────────────────────────────────────
 
 @test "audit shows period label when DAYS arg is given" {
