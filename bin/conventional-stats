@@ -1,8 +1,308 @@
 #!/usr/bin/env zsh
 set -euo pipefail
 
+# ── audit subcommand ──────────────────────────────────────────────────────────
+# Surfaces change-frequency hotspots: files with many big changes are likely
+# code smells. Signal = commits touching the file × churn (lines added+deleted),
+# so a file that changes often AND heavily floats to the top.
+
+# Default ignores: high-churn-by-design files that are not code smells.
+AUDIT_DEFAULT_IGNORE=(
+  '*.lock'
+  'package-lock.json'
+  'pnpm-lock.yaml'
+  'yarn.lock'
+  'go.sum'
+  'dist/'
+  'build/'
+  'node_modules/'
+  'vendor/'
+)
+
+# is_audit_ignored PATH — true if PATH matches any pattern in AUDIT_IGNORE.
+# Patterns: "dir/" → any path under that dir; "a/b" globs → matched against the
+# full path (anchored or under any parent); bare globs → matched on the basename.
+is_audit_ignored() {
+  local file="$1" pat p base="${1:t}"
+  for pat in "${AUDIT_IGNORE[@]}"; do
+    if [[ "$pat" == */ ]]; then
+      [[ "$file" == ${~pat}* || "$file" == *"/${pat}"* ]] && return 0
+      continue
+    fi
+    p="${pat#/}"                       # tolerate leading slash (e.g. /build/*)
+    if [[ "$p" == */* ]]; then
+      [[ "$file" == ${~p} || "$file" == */${~p} ]] && return 0
+    else
+      [[ "$base" == ${~p} ]] && return 0
+    fi
+  done
+  return 1
+}
+
+if [[ "${1:-}" == "audit" ]]; then
+  shift
+
+  if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+    echo "Uso: conventional-stats audit [opciones]"
+    echo ""
+    echo "  Lista archivos hotspot: muchos cambios y grandes (posibles code smells)."
+    echo "  Barra = commits × líneas; color = ratio de fix/hotfix (inestabilidad)."
+    echo "  Audita el repositorio actual salvo que pases --repo."
+    echo ""
+    echo "  --days N             Limitar a los últimos N días (default: todo)"
+    echo "  --repo PATH          Auditar otro repositorio (default: directorio actual)"
+    echo "  --json               Salida en formato JSON (completa, sin truncar)"
+    echo "  --ignore PATRÓN...   Excluir archivos (glob/dir). Ej: --ignore '*.gradle' '/build/*'"
+    echo "  --set-ignore PATRÓN... Guardar patrones en .auditignore del repo y salir"
+    echo ""
+    echo "Ejemplos:"
+    echo "  conventional-stats audit"
+    echo "  conventional-stats audit --days 90"
+    echo "  conventional-stats audit --ignore '*.gradle' '/build/*'"
+    echo "  conventional-stats audit --repo ~/proyectos/mi-app --days 90"
+    echo "  conventional-stats audit --set-ignore '*.gradle' '/build/*'"
+    exit 0
+  fi
+
+  AUDIT_FORMAT="text"
+  AUDIT_REPO="."
+  AUDIT_DAYS=""
+  AUDIT_INLINE_IGNORE=()
+  AUDIT_SET_IGNORE=()
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --json) AUDIT_FORMAT="json"; shift ;;
+      --days)
+        shift
+        [[ $# -gt 0 && "$1" != --* ]] || { echo "Error: --days requiere un número." >&2; exit 1; }
+        AUDIT_DAYS="$1"; shift
+        ;;
+      --repo)
+        shift
+        [[ $# -gt 0 && "$1" != --* ]] || { echo "Error: --repo requiere una ruta." >&2; exit 1; }
+        AUDIT_REPO="$1"; shift
+        ;;
+      --ignore)
+        shift
+        while [[ $# -gt 0 && "$1" != --* ]]; do AUDIT_INLINE_IGNORE+=("$1"); shift; done
+        ;;
+      --set-ignore)
+        shift
+        while [[ $# -gt 0 && "$1" != --* ]]; do AUDIT_SET_IGNORE+=("$1"); shift; done
+        ;;
+      *) echo "Error: opción desconocida '$1'." >&2; exit 1 ;;
+    esac
+  done
+
+  if [[ -n "$AUDIT_DAYS" && ! "$AUDIT_DAYS" == <-> ]]; then
+    echo "Error: --days debe ser un número entero (recibido '$AUDIT_DAYS')." >&2
+    exit 1
+  fi
+
+  if ! git -C "$AUDIT_REPO" rev-parse --git-dir &>/dev/null; then
+    echo "Error: '$AUDIT_REPO' no es un repositorio git." >&2
+    exit 1
+  fi
+  AUDIT_ROOT="$(git -C "$AUDIT_REPO" rev-parse --show-toplevel)"
+
+  # --set-ignore: persist patterns in <repo>/.auditignore, dedupe, then exit.
+  if [[ ${#AUDIT_SET_IGNORE[@]} -gt 0 ]]; then
+    IGNORE_FILE="$AUDIT_ROOT/.auditignore"
+    if [[ ! -f "$IGNORE_FILE" ]]; then
+      print -r -- "# Archivos excluidos de 'conventional-stats audit' — high-churn por diseño." > "$IGNORE_FILE"
+      print -r -- "# Un patrón por línea (glob o dir/). Se suman a los defaults internos." >> "$IGNORE_FILE"
+    fi
+    added=0
+    for pat in "${AUDIT_SET_IGNORE[@]}"; do
+      if grep -qxF -- "$pat" "$IGNORE_FILE" 2>/dev/null; then continue; fi
+      print -r -- "$pat" >> "$IGNORE_FILE"
+      added=$((added + 1))
+    done
+    echo "✓ ${added} patrón(es) guardado(s) en $IGNORE_FILE"
+    exit 0
+  fi
+
+  # Build active ignore set: defaults + .auditignore file + inline --ignore.
+  AUDIT_IGNORE=("${AUDIT_DEFAULT_IGNORE[@]}")
+  if [[ -f "$AUDIT_ROOT/.auditignore" ]]; then
+    while IFS= read -r line; do
+      line="${line## }"; line="${line%% }"
+      [[ -z "$line" || "$line" == \#* ]] && continue
+      AUDIT_IGNORE+=("$line")
+    done < "$AUDIT_ROOT/.auditignore"
+  fi
+  AUDIT_IGNORE+=("${AUDIT_INLINE_IGNORE[@]}")
+
+  AUDIT_SINCE=()
+  AUDIT_PERIOD="todo el historial"
+  if [[ -n "$AUDIT_DAYS" ]]; then
+    AUDIT_SINCE=(--since="${AUDIT_DAYS} days ago")
+    AUDIT_PERIOD="últimos ${AUDIT_DAYS} días"
+  fi
+  AUDIT_REPO_NAME="$(basename "$AUDIT_ROOT")"
+
+  # Aggregate per file in a single awk pass — far faster than a zsh read-loop
+  # on repos with thousands of commits. git emits, per commit: a subject line
+  # (NF==1, from --pretty) followed by numstat lines (NF>=3: added, deleted,
+  # path). --no-renames keeps paths clean ("a => b" / "{a => b}" are avoided).
+  # awk output per file: commits<TAB>churn<TAB>fixes<TAB>type:n,...<TAB>path
+  audit_aggregate() {
+    git -C "$AUDIT_ROOT" log "${AUDIT_SINCE[@]}" \
+      --numstat --no-renames --pretty=format:'%s' 2>/dev/null |
+    awk -F'\t' '
+      NF < 3 {                                   # subject line of a commit
+        if ($0 == "") next
+        is_fix = ($0 ~ /^(fix|hotfix)(\(.*\))?!?:/)
+        ctype  = (match($0, /^[a-z]+/)) ? substr($0, RSTART, RLENGTH) : "other"
+        next
+      }
+      {                                          # numstat line of that commit
+        a = ($1 == "-") ? 0 : $1
+        d = ($2 == "-") ? 0 : $2
+        f = $3
+        seen[f]    = 1
+        commits[f] += 1
+        churn[f]   += a + d
+        if (is_fix) fixes[f] += 1
+        key = f SUBSEP ctype
+        if (!(key in tc)) tlist[f] = tlist[f] (tlist[f] == "" ? "" : " ") ctype
+        tc[key] += 1
+      }
+      END {
+        for (f in seen) {
+          n = split(tlist[f], ts, " "); tb = ""
+          for (i = 1; i <= n; i++)
+            tb = tb (i > 1 ? "," : "") ts[i] ":" tc[f SUBSEP ts[i]]
+          printf "%d\t%d\t%d\t%s\t%s\n", commits[f], churn[f], fixes[f] + 0, tb, f
+        }
+      }
+    '
+  }
+
+  # Drop ignored files (cheap: one pass over ~hundreds of aggregated files, not
+  # thousands of commits) and build sortable rows: score<TAB>commits<TAB>churn<TAB>fixes<TAB>types<TAB>path
+  typeset -a audit_rows=()
+  while IFS=$'\t' read -r c ch fx tb file; do
+    [[ -z "$file" ]] && continue
+    is_audit_ignored "$file" && continue
+    score=$(( c * ch ))
+    audit_rows+=("${score}	${c}	${ch}	${fx}	${tb}	${file}")
+  done < <(audit_aggregate)
+
+  # Rows start with the numeric score, so (On) = reverse numeric sort by score.
+  typeset -a audit_sorted=()
+  if [[ ${#audit_rows[@]} -gt 0 ]]; then
+    audit_sorted=("${(@On)audit_rows}")
+  fi
+
+  AUDIT_LIMIT=20
+
+  # ── JSON: complete, untruncated, with per-type breakdown ──────────────────
+  if [[ "$AUDIT_FORMAT" == "json" ]]; then
+    printf '{\n'
+    printf '  "repo": "%s",\n' "$AUDIT_REPO_NAME"
+    printf '  "period": "%s",\n' "$AUDIT_PERIOD"
+    printf '  "hotspots": [\n'
+    n=${#audit_sorted[@]}
+    i=1
+    for row in "${audit_sorted[@]}"; do
+      IFS=$'\t' read -r score c ch fx tb file <<< "$row"
+      # "feat:3,fix:2" → "feat": 3, "fix": 2
+      types_json=""
+      if [[ -n "$tb" ]]; then
+        typeset -a pairs; IFS=',' read -rA pairs <<< "$tb"
+        for pr in "${pairs[@]}"; do
+          types_json+="\"${pr%%:*}\": ${pr##*:}, "
+        done
+        types_json="${types_json%, }"
+      fi
+      sep=","; [[ $i -eq $n ]] && sep=""
+      printf '    { "file": "%s", "commits": %d, "churn": %d, "fixes": %d, "score": %d, "types": { %s } }%s\n' \
+        "$file" "$c" "$ch" "$fx" "$score" "$types_json" "$sep"
+      i=$((i + 1))
+    done
+    printf '  ]\n'
+    printf '}\n'
+    exit 0
+  fi
+
+  # ── Text: bar = magnitude (score), color = instability (fix ratio) ────────
+  C_RED="" C_YEL="" C_GRN="" C_DIM="" C_BOLD="" C_RST=""
+  if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then
+    C_RED=$'\033[31m'; C_YEL=$'\033[33m'; C_GRN=$'\033[32m'
+    C_DIM=$'\033[2m'; C_BOLD=$'\033[1m'; C_RST=$'\033[0m'
+  fi
+
+  echo ""
+  echo "${C_BOLD}🔥 audit · ${AUDIT_REPO_NAME}${C_RST} ${C_DIM}— ${AUDIT_PERIOD}${C_RST}"
+  echo ""
+  if [[ ${#audit_sorted[@]} -eq 0 ]]; then
+    echo "  ${C_DIM}Sin cambios en este rango.${C_RST}"
+    echo ""
+    exit 0
+  fi
+
+  # Top score (rows are sorted desc) sets the full-width bar reference.
+  IFS=$'\t' read -r AUDIT_MAX _rest <<< "${audit_sorted[1]}"
+  (( AUDIT_MAX < 1 )) && AUDIT_MAX=1
+
+  # Name column = longest shown path, capped, so bars line up.
+  BAR_W=22
+  NAME_W=0
+  i=1
+  for row in "${audit_sorted[@]}"; do
+    [[ $i -gt $AUDIT_LIMIT ]] && break
+    IFS=$'\t' read -r _s _c _ch _fx _tb file <<< "$row"
+    (( ${#file} > NAME_W )) && NAME_W=${#file}
+    i=$((i + 1))
+  done
+  (( NAME_W > 36 )) && NAME_W=36
+
+  i=1
+  for row in "${audit_sorted[@]}"; do
+    [[ $i -gt $AUDIT_LIMIT ]] && break
+    IFS=$'\t' read -r score c ch fx tb file <<< "$row"
+
+    disp="$file"
+    (( ${#disp} > NAME_W )) && disp="…${disp[-$((NAME_W - 1)),-1]}"
+
+    cols=$(( score * BAR_W / AUDIT_MAX ))
+    (( cols < 1 && score > 0 )) && cols=1
+    bar=""; (( cols > 0 )) && bar="$(printf '█%.0s' {1..$cols})"
+    pad=$(( BAR_W - cols )); track=""; (( pad > 0 )) && track="$(printf '·%.0s' {1..$pad})"
+
+    # Color = instability: fix ratio, but only flag when fixes >= 2 so a single
+    # "1 commit = 1 fix" file stays neutral instead of glowing red.
+    if (( fx >= 2 )); then
+      pct=$(( fx * 100 / c ))
+      if   (( pct >= 40 )); then col="$C_RED"
+      elif (( pct >= 15 )); then col="$C_YEL"
+      else                       col="$C_GRN"
+      fi
+    else
+      col="$C_DIM"
+    fi
+
+    fixlabel="${C_DIM}· ${fx} fix${C_RST}"
+    (( fx >= 2 )) && fixlabel="${col}· ${fx} fix${C_RST}"
+
+    printf "  %-*s  ${col}%s${C_RST}${C_DIM}%s${C_RST}  ${C_BOLD}%d${C_RST}${C_DIM} commits · %d líneas${C_RST} %b\n" \
+      "$NAME_W" "$disp" "$bar" "$track" "$c" "$ch" "$fixlabel"
+    i=$((i + 1))
+  done
+
+  shown=${#audit_sorted[@]}
+  (( shown > AUDIT_LIMIT )) && shown=$AUDIT_LIMIT
+  echo ""
+  echo "  ${C_DIM}${#audit_sorted[@]} archivos · barra = commits × líneas · color = ratio de fix · top ${shown}${C_RST}"
+  echo ""
+  exit 0
+fi
+
 if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
   echo "Uso: conventional-stats [--json] [ruta-repo] [días]"
+  echo "     conventional-stats audit [...]   (hotspots / code smells; ver --help)"
   echo ""
   echo "  --json      Salida en formato JSON"
   echo "  ruta-repo   Ruta al repositorio git (default: directorio actual)"
