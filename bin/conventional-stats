@@ -229,32 +229,29 @@ if [[ "${1:-}" == "audit" ]]; then
   AUDIT_LIMIT=20
 
   # ── JSON: complete, untruncated, with per-type breakdown ──────────────────
+  # Built in a single awk pass over the sorted rows — a zsh loop here was the
+  # slowest part of --json (seconds on big repos: thousands of iterations with
+  # nested string ops). Rows are score<TAB>commits<TAB>churn<TAB>fixes<TAB>types<TAB>path.
   _audit_emit_json() {
-    printf '{\n'
-    printf '  "repo": "%s",\n' "$AUDIT_REPO_NAME"
-    printf '  "period": "%s",\n' "$AUDIT_PERIOD"
-    printf '  "hotspots": [\n'
-    local n=${#audit_sorted[@]} i=1 row score c ch fx tb file types_json pr sep file_json
-    for row in "${audit_sorted[@]}"; do
-      IFS=$'\t' read -r score c ch fx tb file <<< "$row"
-      # "feat:3,fix:2" → "feat": 3, "fix": 2
-      types_json=""
-      if [[ -n "$tb" ]]; then
-        typeset -a pairs; IFS=',' read -rA pairs <<< "$tb"
-        for pr in "${pairs[@]}"; do
-          types_json+="\"${pr%%:*}\": ${pr##*:}, "
-        done
-        types_json="${types_json%, }"
-      fi
-      # Escape backslash then double-quote so any path is a valid JSON string.
-      file_json="${file//\\/\\\\}"; file_json="${file_json//\"/\\\"}"
-      sep=","; [[ $i -eq $n ]] && sep=""
-      printf '    { "file": "%s", "commits": %d, "churn": %d, "fixes": %d, "score": %d, "types": { %s } }%s\n' \
-        "$file_json" "$c" "$ch" "$fx" "$score" "$types_json" "$sep"
-      i=$((i + 1))
-    done
-    printf '  ]\n'
-    printf '}\n'
+    printf '%s\n' "${audit_sorted[@]}" |
+    awk -F'\t' -v repo="$AUDIT_REPO_NAME" -v period="$AUDIT_PERIOD" '
+      function esc(s) { gsub(/\\/, "\\\\", s); gsub(/"/, "\\\"", s); return s }
+      BEGIN {
+        printf "{\n  \"repo\": \"%s\",\n  \"period\": \"%s\",\n  \"hotspots\": [", esc(repo), esc(period)
+        first = 1
+      }
+      NF >= 6 {
+        tj = ""                                   # "feat:3,fix:2" → "feat": 3, "fix": 2
+        if ($5 != "") {
+          n = split($5, ps, ",")
+          for (k = 1; k <= n; k++) { split(ps[k], kv, ":"); tj = tj (k > 1 ? ", " : "") "\"" kv[1] "\": " kv[2] }
+        }
+        printf "%s\n    { \"file\": \"%s\", \"commits\": %d, \"churn\": %d, \"fixes\": %d, \"score\": %d, \"types\": { %s } }", \
+          (first ? "" : ","), esc($6), $2, $3, $4, $1, tj
+        first = 0
+      }
+      END { printf "%s  ]\n}\n", (first ? "" : "\n") }
+    '
   }
 
   if [[ "$AUDIT_FORMAT" == "json" ]]; then
