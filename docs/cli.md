@@ -27,6 +27,80 @@ La flag `--json` puede ir en cualquier posición; el resto de argumentos son pos
 
 ---
 
+## Subcomando `audit` — hotspots / code smells
+
+Lista los archivos **conflictivos**: los que reciben muchos cambios y grandes. Inspirado en el método de hotspots de Adam Tornhill (*Your Code as a Crime Scene*), con dos dimensiones visuales:
+
+- **Barra = magnitud**: `commits × líneas modificadas (+/-)`. Un archivo que cambia a menudo *y* de forma pesada tiene la barra más larga (posible god object / imán de cambios).
+- **Color = inestabilidad**: el ratio de commits `fix`/`hotfix` sobre el archivo. Rojo = vive roto; verde/amarillo según el ratio; gris = estable. Solo se colorea a partir de **2 fixes** (un único `fix` no dispara la alarma).
+
+Lectura rápida: **barra larga + roja** = el peor cuadrante (dividir/refactorizar); **larga + gris** = grande pero estable.
+
+Audita el **repositorio actual** por defecto; no hace falta pasar la ruta.
+
+```bash
+# Repo actual, todo el historial
+conventional-stats audit
+
+# Solo los últimos N días
+conventional-stats audit --days 90
+
+# Auditar otro repo sin entrar en él
+conventional-stats audit --repo ~/proyectos/mi-app --days 90
+
+# Excluir archivos de forma puntual (globs y directorios)
+conventional-stats audit --ignore '*.gradle' '/build/*'
+
+# Guardar exclusiones en el proyecto (.auditignore) y salir
+conventional-stats audit --set-ignore '*.gradle' '/build/*'
+
+# JSON completo, pipeable a jq
+conventional-stats audit --json
+conventional-stats audit --json | jq '.hotspots[] | select(.fixes >= 3)'
+```
+
+### Exclusiones
+
+Se aplican, en este orden y de forma acumulativa:
+
+1. **Defaults internos**: `*.lock`, `package-lock.json`, `pnpm-lock.yaml`, `yarn.lock`, `go.sum`, `dist/`, `build/`, `node_modules/`, `vendor/` — high-churn por diseño, no son code smells.
+2. **`.auditignore`** del repo (un patrón por línea, `#` para comentarios). Se crea/actualiza con `--set-ignore`.
+3. **`--ignore`** puntual para esa ejecución.
+
+Patrones soportados: glob sobre el nombre (`*.gradle`), glob sobre ruta completa (`src/**/*.kt`) y directorio (`build/`, que coincide a cualquier profundidad). Un `/` inicial es tolerado (`/build/*`).
+
+### Salida JSON
+
+A diferencia del render de terminal (top 20, con color), el JSON es **completo y sin color**, con el desglose de commits por tipo:
+
+```json
+{
+  "repo": "mi-app",
+  "period": "últimos 90 días",
+  "hotspots": [
+    {
+      "file": "src/app.kt",
+      "commits": 18,
+      "churn": 1240,
+      "fixes": 7,
+      "score": 22320,
+      "types": { "feat": 6, "fix": 7, "refactor": 5 }
+    }
+  ]
+}
+```
+
+`score = commits × churn` es la clave de orden (descendente).
+
+### Notas de implementación
+
+- **Rendimiento**: la agregación se hace en una sola pasada de `awk` sobre `git log --numstat` (rápido en repos con miles de commits). El filtrado por glob y el render quedan en zsh.
+- **Renames**: se usa `git log --no-renames`, así un fichero renombrado aparece por su nombre actual sin paths fantasma `a => b`. Limitación: la historia anterior al rename no se fusiona con el nombre nuevo.
+- **Merges**: `--numstat` no muestra el diff de los commits de merge, así que no se doble-cuentan.
+- **Color**: solo se emite en una terminal real y si `NO_COLOR` no está definida (los pipes y `--json` salen limpios).
+
+---
+
 ## Salida JSON
 
 ```json
