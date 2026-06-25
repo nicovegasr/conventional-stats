@@ -235,9 +235,11 @@ if [[ "${1:-}" == "audit" ]]; then
   fi
 
   # ── Text: bar = magnitude (score), color = instability (fix ratio) ────────
-  C_RED="" C_YEL="" C_GRN="" C_DIM="" C_BOLD="" C_RST=""
+  # Only the unstable files get colour (bold bright yellow/red); everything else
+  # stays dim so the conflictive ones pop instead of a wall of muted green.
+  C_RED="" C_YEL="" C_DIM="" C_BOLD="" C_RST=""
   if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then
-    C_RED=$'\033[31m'; C_YEL=$'\033[33m'; C_GRN=$'\033[32m'
+    C_RED=$'\033[1;91m'; C_YEL=$'\033[1;93m'
     C_DIM=$'\033[2m'; C_BOLD=$'\033[1m'; C_RST=$'\033[0m'
   fi
 
@@ -280,22 +282,20 @@ if [[ "${1:-}" == "audit" ]]; then
     pad=$(( BAR_W - cols )); track=""; (( pad > 0 )) && track="$(printf '·%.0s' {1..$pad})"
 
     # Color = instability: fix ratio, but only flag when fixes >= 2 so a single
-    # "1 commit = 1 fix" file stays neutral instead of glowing red.
+    # "1 commit = 1 fix" file stays neutral. Low ratio also stays dim so only the
+    # genuinely conflictive files (high proportion of fixes) light up.
+    col="$C_DIM"
     if (( fx >= 2 )); then
       pct=$(( fx * 100 / c ))
       if   (( pct >= 40 )); then col="$C_RED"
       elif (( pct >= 15 )); then col="$C_YEL"
-      else                       col="$C_GRN"
       fi
-    else
-      col="$C_DIM"
     fi
 
-    fixlabel="${C_DIM}· ${fx} fix${C_RST}"
-    (( fx >= 2 )) && fixlabel="${col}· ${fx} fix${C_RST}"
-
-    printf "  %-*s  ${col}%s${C_RST}${C_DIM}%s${C_RST}  ${C_BOLD}%d${C_RST}${C_DIM} commits · %d líneas${C_RST} %b\n" \
-      "$NAME_W" "$disp" "$bar" "$track" "$c" "$ch" "$fixlabel"
+    # Colour the whole row by risk so it reads as one band; keep the track dots
+    # dim so the bar stays distinguishable from the empty remainder.
+    printf "  ${col}%-*s  %s${C_RST}${C_DIM}%s${C_RST}  ${col}%d commits · %d líneas · %d fix${C_RST}\n" \
+      "$NAME_W" "$disp" "$bar" "$track" "$c" "$ch" "$fx"
     i=$((i + 1))
   done
 
