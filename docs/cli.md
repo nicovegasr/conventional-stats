@@ -92,9 +92,11 @@ A diferencia del render de terminal (top 20, con color), el JSON es **completo y
 
 `score = commits × churn` es la clave de orden (descendente).
 
+**Dónde va el JSON**: si rediriges o haces pipe (`audit --json | jq`, `audit --json > f.json`) se emite por stdout. Si lo lanzas a pelo en la terminal, en vez de inundarla escribe `audit.json` en el directorio actual y muestra `✓ N hotspots → audit.json`.
+
 ### Notas de implementación
 
-- **Rendimiento**: la agregación se hace en una sola pasada de `awk` sobre `git log --numstat` (rápido en repos con miles de commits). El filtrado por glob y el render quedan en zsh.
+- **Rendimiento**: la agregación se hace en una sola pasada de `awk` sobre `git log --numstat` (rápido en repos con miles de commits). El filtrado por glob y el render quedan en zsh. Mientras recorre el historial muestra un spinner con el nº de commits y una estimación (solo si stderr es una terminal).
 - **Renames**: se usa `git log --no-renames`, así un fichero renombrado aparece por su nombre actual sin paths fantasma `a => b`. Limitación: la historia anterior al rename no se fusiona con el nombre nuevo.
 - **Merges**: `--numstat` no muestra el diff de los commits de merge, así que no se doble-cuentan.
 - **Color**: solo se emite en una terminal real y si `NO_COLOR` no está definida (los pipes y `--json` salen limpios).

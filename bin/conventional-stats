@@ -51,7 +51,7 @@ if [[ "${1:-}" == "audit" ]]; then
     echo ""
     echo "  --days N             Limitar a los últimos N días (default: todo)"
     echo "  --repo PATH          Auditar otro repositorio (default: directorio actual)"
-    echo "  --json               Salida en formato JSON (completa, sin truncar)"
+    echo "  --json               JSON completo (a stdout si hay pipe; si no, a audit.json)"
     echo "  --ignore PATRÓN...   Excluir archivos (glob/dir). Ej: --ignore '*.gradle' '/build/*'"
     echo "  --set-ignore PATRÓN... Guardar patrones en .auditignore del repo y salir"
     echo ""
@@ -185,6 +185,31 @@ if [[ "${1:-}" == "audit" ]]; then
     '
   }
 
+  # Walking the whole history with --numstat is the slow step (seconds on big
+  # repos), so show a spinner on stderr while it runs — only when stderr is a
+  # terminal, so pipes/redirects/CI stay clean. A rough ETA (~1ms/commit) gives
+  # the user a sense of the wait.
+  _audit_spinner() {
+    local msg="$1" frames=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏') i=0
+    while :; do
+      print -n "\r  ${frames[$((i % 10 + 1))]} ${msg}…" >&2
+      sleep 0.1; (( i++ ))
+    done
+  }
+
+  AUDIT_RAW=""
+  if [[ -t 2 ]]; then
+    n_commits=$(git -C "$AUDIT_ROOT" rev-list --count "${AUDIT_SINCE[@]}" HEAD 2>/dev/null || echo 0)
+    spin_msg="auditando ${n_commits} commits"
+    (( n_commits / 1000 >= 2 )) && spin_msg="${spin_msg} (~$(( n_commits / 1000 ))s)"
+    _audit_spinner "$spin_msg" & spin_pid=$!
+    AUDIT_RAW="$(audit_aggregate)"
+    kill "$spin_pid" 2>/dev/null || true; wait "$spin_pid" 2>/dev/null || true
+    print -n "\r\033[K" >&2          # erase the spinner line
+  else
+    AUDIT_RAW="$(audit_aggregate)"
+  fi
+
   # Drop ignored files (cheap: one pass over ~hundreds of aggregated files, not
   # thousands of commits) and build sortable rows: score<TAB>commits<TAB>churn<TAB>fixes<TAB>types<TAB>path
   typeset -a audit_rows=()
@@ -193,7 +218,7 @@ if [[ "${1:-}" == "audit" ]]; then
     is_audit_ignored "$file" && continue
     score=$(( c * ch ))
     audit_rows+=("${score}	${c}	${ch}	${fx}	${tb}	${file}")
-  done < <(audit_aggregate)
+  done <<< "$AUDIT_RAW"
 
   # Rows start with the numeric score, so (On) = reverse numeric sort by score.
   typeset -a audit_sorted=()
@@ -204,13 +229,12 @@ if [[ "${1:-}" == "audit" ]]; then
   AUDIT_LIMIT=20
 
   # ── JSON: complete, untruncated, with per-type breakdown ──────────────────
-  if [[ "$AUDIT_FORMAT" == "json" ]]; then
+  _audit_emit_json() {
     printf '{\n'
     printf '  "repo": "%s",\n' "$AUDIT_REPO_NAME"
     printf '  "period": "%s",\n' "$AUDIT_PERIOD"
     printf '  "hotspots": [\n'
-    n=${#audit_sorted[@]}
-    i=1
+    local n=${#audit_sorted[@]} i=1 row score c ch fx tb file types_json pr sep file_json
     for row in "${audit_sorted[@]}"; do
       IFS=$'\t' read -r score c ch fx tb file <<< "$row"
       # "feat:3,fix:2" → "feat": 3, "fix": 2
@@ -231,6 +255,18 @@ if [[ "${1:-}" == "audit" ]]; then
     done
     printf '  ]\n'
     printf '}\n'
+  }
+
+  if [[ "$AUDIT_FORMAT" == "json" ]]; then
+    # Piped/redirected → stream to stdout (keeps `| jq` and `> file.json`).
+    # Interactive terminal → write a file instead of flooding the screen.
+    if [[ -t 1 ]]; then
+      out="audit.json"
+      _audit_emit_json > "$out"
+      echo "✓ ${#audit_sorted[@]} hotspots → ${out}"
+    else
+      _audit_emit_json
+    fi
     exit 0
   fi
 
