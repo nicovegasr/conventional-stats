@@ -59,3 +59,31 @@ Elimina el bloque añadido a tu `.zshrc` (con backup en `.zshrc.bak`), el binari
 
 1. **Atajos de shell** que refuerzan Conventional Commits mientras escribes — `feat "añadir login"` → `git add . && git commit -m "feat: añadir login."`
 2. **Una CLI** para auditar el historial de cualquier repo por tipo semántico, directamente desde la terminal.
+3. **`audit`**: encuentra los archivos conflictivos (hotspots / code smells) por frecuencia y tamaño de cambio.
+
+---
+
+## Encuentra los archivos conflictivos — `conventional-stats audit`
+
+`audit` ordena los archivos por **hotspot** (`commits × líneas modificadas`) para sacar a la luz los posibles code smells. Cada fila tiene dos dimensiones:
+
+- **Barra = magnitud**: cuánto cambia y cuán grande es (un imán de cambios / posible god object).
+- **Color = inestabilidad**: la proporción de commits `fix`/`hotfix`. Gris = estable; **amarillo** = se rompe a menudo; **rojo** = vive roto.
+
+El truco está en **ignorar el ruido** (`CHANGELOG`, `package.json`, generados…) para que aflore el código real. Misma orden, antes y después de un `.auditignore`:
+
+| Sin filtrar — el ruido tapa todo | Con `.auditignore` — afloran los hotspots |
+|:---:|:---:|
+| ![audit sin filtrar](assets/audit-before.png) | ![audit filtrado](assets/audit-after.png) |
+
+A la derecha se lee de un vistazo: `@types/astro.ts` es el mayor imán de cambios pero está **en gris** (cambia mucho y es estable), mientras que `cloudflare/src/index.ts` y `errors-data.ts` salen en **amarillo/rojo** — cada vez que se tocan suele ser para arreglar algo. Esos son los candidatos a refactor.
+
+```bash
+conventional-stats audit                         # repo actual, todo el historial
+conventional-stats audit --days 90               # últimos 90 días
+conventional-stats audit --ignore '*.gradle'     # excluir puntualmente (glob/dir)
+conventional-stats audit --set-ignore '*.md'     # recordar exclusiones en .auditignore
+conventional-stats audit --json | jq             # datos completos (sin truncar)
+```
+
+Más detalle en [docs/cli.md](docs/cli.md).

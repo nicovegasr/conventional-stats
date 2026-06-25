@@ -32,7 +32,7 @@ La flag `--json` puede ir en cualquier posición; el resto de argumentos son pos
 Lista los archivos **conflictivos**: los que reciben muchos cambios y grandes. Inspirado en el método de hotspots de Adam Tornhill (*Your Code as a Crime Scene*), con dos dimensiones visuales:
 
 - **Barra = magnitud**: `commits × líneas modificadas (+/-)`. Un archivo que cambia a menudo *y* de forma pesada tiene la barra más larga (posible god object / imán de cambios).
-- **Color = inestabilidad**: el ratio de commits `fix`/`hotfix` sobre el archivo. Rojo = vive roto; verde/amarillo según el ratio; gris = estable. Solo se colorea a partir de **2 fixes** (un único `fix` no dispara la alarma).
+- **Color = inestabilidad**: el ratio de commits `fix`/`hotfix` sobre el archivo. Gris = estable; **amarillo** = se rompe a menudo (ratio ≥ 15 %); **rojo** = vive roto (ratio ≥ 40 %). Solo se colorea a partir de **2 fixes** (un único `fix` no dispara la alarma).
 
 Lectura rápida: **barra larga + roja** = el peor cuadrante (dividir/refactorizar); **larga + gris** = grande pero estable.
 
