@@ -83,7 +83,8 @@ conventional-stats audit                         # repo actual, todo el historia
 conventional-stats audit --days 90               # últimos 90 días
 conventional-stats audit --ignore '*.gradle'     # excluir puntualmente (glob/dir)
 conventional-stats audit --set-ignore '*.md'     # recordar exclusiones en .auditignore
-conventional-stats audit --json | jq             # datos completos (sin truncar)
+conventional-stats audit --json                  # informe completo → audit.json
+conventional-stats audit --json | jq '.hotspots' # o por pipe, para filtrar al vuelo
 ```
 
 En repos grandes recorrer el historial tarda unos segundos, así que muestra el progreso con el nº de commits y una estimación:
