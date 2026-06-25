@@ -86,4 +86,14 @@ conventional-stats audit --set-ignore '*.md'     # recordar exclusiones en .audi
 conventional-stats audit --json | jq             # datos completos (sin truncar)
 ```
 
+En repos grandes recorrer el historial tarda unos segundos, así que muestra el progreso con el nº de commits y una estimación:
+
+![audit cargando](assets/audit-loading.png)
+
+### Salida JSON a un archivo
+
+`--json` devuelve el informe **completo** (sin truncar, con el desglose por tipo). Si lo rediriges o haces pipe (`| jq`, `> informe.json`) sale por stdout; si lo lanzas a pelo en la terminal, en vez de inundarla **escribe `audit.json`** y te confirma:
+
+![audit --json](assets/audit-json.png)
+
 Más detalle en [docs/cli.md](docs/cli.md).
