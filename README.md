@@ -99,3 +99,7 @@ En repos grandes recorrer el historial tarda unos segundos, así que muestra el 
 ![audit --json](assets/audit-json.png)
 
 Más detalle en [docs/cli.md](docs/cli.md).
+
+## License
+
+[MIT](LICENSE) © Nicolas Daniel Vegas Rodriguez
